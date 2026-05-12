@@ -5,10 +5,11 @@
     "types": ["vitepress/client", "node"],
     "noEmit": true,
     "paths": {
+      "vau": ["./src/lib/index.ts"],
       "@vau/core": ["./src/lib/core/index.ts"],
       "@vau/ui": ["./src/lib/ui/index.ts"],
       "@vau/styles": ["./src/lib/styles/core/index.scss"]
     }
   },
-  "include": [".vitepress/**/*", ".vitepress/**/*.vue"]
+  "include": [".vitepress/**/*", ".vitepress/**/*.vue", "examples/**/*"]
 }

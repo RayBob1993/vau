@@ -5,7 +5,7 @@ export type DrawerProps = {
     position?: DrawerPosition;
     appendToBody?: boolean;
     closeOnEscape?: boolean;
-} & Partial<SizeProp>;
+} & Partial<Pick<SizeProp, 'size'>>;
 export interface DrawerEmits {
     opened: [payload: Element];
     closed: [payload: Element];

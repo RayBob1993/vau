@@ -1,19 +1,14 @@
 <script setup lang="ts">
-  import { ref } from 'vue';
-  import { Button, Drawer } from 'vau';
+  import { Button, Drawer, useToggle } from 'vau';
 
-  const isVisibleDrawer = ref<boolean>(false);
-
-  function handleOpen () {
-    isVisibleDrawer.value = true;
-  }
+  const [isVisibleDrawer, setIsVisibleDrawer] = useToggle();
 </script>
 
 <template>
   <Button.Root
     theme="base"
     size="medium"
-    @click="handleOpen"
+    @click="setIsVisibleDrawer(true)"
   >
     Открыть Drawer
   </Button.Root>

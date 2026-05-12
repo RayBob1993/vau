@@ -7,7 +7,7 @@ export type ModalProps = {
   position?: ModalPosition;
   appendToBody?: boolean;
   closeOnEscape?: boolean;
-} & Partial<SizeProp>;
+} & Partial<Pick<SizeProp, 'size'>>;
 
 export interface ModalEmits {
   opened: [payload: Element];

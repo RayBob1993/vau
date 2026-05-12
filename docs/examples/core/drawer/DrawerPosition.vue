@@ -1,27 +1,10 @@
 <script setup lang="ts">
-  import { ref } from 'vue';
-  import { Button, Drawer } from 'vau';
+  import { Button, Drawer, useToggle } from 'vau';
 
-  const isVisibleDrawerLeft = ref<boolean>(false);
-  const isVisibleDrawerRight = ref<boolean>(false);
-  const isVisibleDrawerTop = ref<boolean>(false);
-  const isVisibleDrawerBottom = ref<boolean>(false);
-
-  function handleDrawerLeftOpen () {
-    isVisibleDrawerLeft.value = true;
-  }
-
-  function handleDrawerRightOpen () {
-    isVisibleDrawerRight.value = true;
-  }
-
-  function handleDrawerTopOpen () {
-    isVisibleDrawerTop.value = true;
-  }
-
-  function handleDrawerBottomOpen () {
-    isVisibleDrawerBottom.value = true;
-  }
+  const [isVisibleDrawerLeft, setIsVisibleDrawerLeft] = useToggle();
+  const [isVisibleDrawerRight, setIsVisibleDrawerRight] = useToggle();
+  const [isVisibleDrawerTop, setIsVisibleDrawerTop] = useToggle();
+  const [isVisibleDrawerBottom, setIsVisibleDrawerBottom] = useToggle();
 </script>
 
 <template>
@@ -29,7 +12,7 @@
     <Button.Root
       theme="base"
       size="medium"
-      @click="handleDrawerLeftOpen"
+      @click="setIsVisibleDrawerLeft(true)"
     >
       Открыть Drawer Left
     </Button.Root>
@@ -37,7 +20,7 @@
     <Button.Root
       theme="base"
       size="medium"
-      @click="handleDrawerRightOpen"
+      @click="setIsVisibleDrawerRight(true)"
     >
       Открыть Drawer Right
     </Button.Root>
@@ -45,7 +28,7 @@
     <Button.Root
       theme="base"
       size="medium"
-      @click="handleDrawerTopOpen"
+      @click="setIsVisibleDrawerTop(true)"
     >
       Открыть Drawer Top
     </Button.Root>
@@ -53,7 +36,7 @@
     <Button.Root
       theme="base"
       size="medium"
-      @click="handleDrawerBottomOpen"
+      @click="setIsVisibleDrawerBottom(true)"
     >
       Открыть Drawer Bottom
     </Button.Root>

@@ -4,7 +4,7 @@ export declare const Drawer: {
             position?: import("./types").DrawerPosition;
             appendToBody?: boolean;
             closeOnEscape?: boolean;
-        } & Partial<import("../../index.js").SizeProp> & {
+        } & Partial<Pick<import("../../index.js").SizeProp, "size">> & {
             modelValue: boolean;
         }> & Readonly<{
             "onUpdate:modelValue"?: ((value: boolean) => any) | undefined;
@@ -33,7 +33,7 @@ export declare const Drawer: {
             position?: import("./types").DrawerPosition;
             appendToBody?: boolean;
             closeOnEscape?: boolean;
-        } & Partial<import("../../index.js").SizeProp> & {
+        } & Partial<Pick<import("../../index.js").SizeProp, "size">> & {
             modelValue: boolean;
         }> & Readonly<{
             "onUpdate:modelValue"?: ((value: boolean) => any) | undefined;
@@ -53,7 +53,7 @@ export declare const Drawer: {
         position?: import("./types").DrawerPosition;
         appendToBody?: boolean;
         closeOnEscape?: boolean;
-    } & Partial<import("../../index.js").SizeProp> & {
+    } & Partial<Pick<import("../../index.js").SizeProp, "size">> & {
         modelValue: boolean;
     }> & Readonly<{
         "onUpdate:modelValue"?: ((value: boolean) => any) | undefined;

@@ -14,13 +14,7 @@ var g = /* @__PURE__ */ o({
 			type: Boolean,
 			default: !0
 		},
-		size: {},
-		sizeXs: {},
-		sizeSm: {},
-		sizeMd: {},
-		sizeLg: {},
-		sizeXl: {},
-		sizeXxl: {}
+		size: {}
 	}, {
 		modelValue: {
 			type: Boolean,
