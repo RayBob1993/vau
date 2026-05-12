@@ -18,13 +18,7 @@ var S = /* @__PURE__ */ u({
 			type: Boolean,
 			default: !0
 		},
-		size: {},
-		sizeXs: {},
-		sizeSm: {},
-		sizeMd: {},
-		sizeLg: {},
-		sizeXl: {},
-		sizeXxl: {}
+		size: {}
 	}, {
 		modelValue: {
 			type: Boolean,
