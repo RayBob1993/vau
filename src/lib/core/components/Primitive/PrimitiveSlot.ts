@@ -1,5 +1,5 @@
 import { renderSlotFragments } from '../../utils';
-import { cloneVNode, Comment, defineComponent, mergeProps } from 'vue';
+import { cloneVNode, Comment, defineComponent, mergeProps, type VNode } from 'vue';
 
 export const Slot = defineComponent({
   name: 'PrimitiveSlot',
@@ -19,6 +19,10 @@ export const Slot = defineComponent({
 
       const firstNonCommentChildren = children[firstNonCommentChildrenIndex];
 
+      if (!firstNonCommentChildren) {
+        return children;
+      }
+
       // Remove props ref from being inferred
       delete firstNonCommentChildren.props?.ref;
 
@@ -30,10 +34,10 @@ export const Slot = defineComponent({
         ? mergeProps(attrs, firstNonCommentChildren.props)
         : attrs;
 
-      const cloned = cloneVNode({
-        ...firstNonCommentChildren,
-        props: {}
-      }, mergedProps);
+      const cloned = cloneVNode(
+        { ...firstNonCommentChildren, props: {} } as VNode,
+        mergedProps,
+      );
 
       if (children.length === 1) {
         return cloned;

@@ -10,6 +10,7 @@ var a = r({
 			let r = e(o.default()), s = r.findIndex((e) => e.type !== t);
 			if (s === -1) return r;
 			let c = r[s];
+			if (!c) return r;
 			delete c.props?.ref;
 			let l = c.props ? i(a, c.props) : a, u = n({
 				...c,
