@@ -27,7 +27,6 @@ export * from './ConfigProvider';
 //export * from './Progress';
 export * from './Divider';
 export * from './Flex';
-//export * from './Table';
 export * from './InputGroup';
 //export * from './Countdown';
 //export * from './Calendar';

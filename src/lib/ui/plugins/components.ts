@@ -11,19 +11,19 @@ import {
   ConfigProviderPlugin,
   ModalPlugin,
   InplacePlugin,
-  //DrawerPlugin,
+  DrawerPlugin,
   //DropdownPlugin,
   //ImagePlugin,
   //PaginationPlugin,
   //PlaceholderPlugin,
   ScrollbarPlugin,
-  //SpinnerPlugin,
+  SpinnerPlugin,
   //TabsPlugin,
   TagPlugin,
   TextPlugin,
-  //ContainerPlugin,
-  //ColPlugin,
-  //RowPlugin,
+  ContainerPlugin,
+  ColPlugin,
+  RowPlugin,
   LayoutPlugin,
   FormPlugin,
   FormItemPlugin,
@@ -41,17 +41,25 @@ import {
   RadioGroupPlugin,
   SwitchPlugin,
   SelectPlugin,
-  //AlertPlugin,
+  AlertPlugin,
   //ProgressPlugin,
   DividerPlugin,
   FlexPlugin,
   InputGroupPlugin,
+  MenuPlugin,
   //CountdownPlugin,
   //CalendarPlugin,
 } from '../components';
+import { ClickOutsidePlugin, LoadingPlugin, TooltipPlugin, VisiblePlugin } from '@vau/core';
 
-export const VauUI: Plugin = {
+export const Vau: Plugin = {
   install (app: App) {
+    // Directives
+    app.use(ClickOutsidePlugin);
+    app.use(LoadingPlugin);
+    app.use(TooltipPlugin);
+    app.use(VisiblePlugin);
+
     // Components
     app.use(AccordionPlugin);
     //app.use(AffixPlugin);
@@ -64,19 +72,19 @@ export const VauUI: Plugin = {
     app.use(ConfigProviderPlugin);
     app.use(ModalPlugin);
     app.use(InplacePlugin);
-    //app.use(DrawerPlugin);
+    app.use(DrawerPlugin);
     //app.use(DropdownPlugin);
     //app.use(ImagePlugin);
     //app.use(PaginationPlugin);
     //app.use(PlaceholderPlugin);
     app.use(ScrollbarPlugin);
-    //app.use(SpinnerPlugin);
+    app.use(SpinnerPlugin);
     //app.use(TabsPlugin);
     app.use(TagPlugin);
     app.use(TextPlugin);
-    //app.use(ContainerPlugin);
-    //app.use(ColPlugin);
-    //app.use(RowPlugin);
+    app.use(ContainerPlugin);
+    app.use(ColPlugin);
+    app.use(RowPlugin);
     app.use(LayoutPlugin);
     app.use(FormPlugin);
     app.use(FormItemPlugin);
@@ -94,12 +102,12 @@ export const VauUI: Plugin = {
     app.use(RadioGroupPlugin);
     app.use(SwitchPlugin);
     app.use(SelectPlugin);
-    //app.use(AlertPlugin);
+    app.use(AlertPlugin);
     //app.use(ProgressPlugin);
     app.use(DividerPlugin);
     app.use(FlexPlugin);
-    //app.use(TablePlugin);
     app.use(InputGroupPlugin);
+    app.use(MenuPlugin);
     //app.use(CountdownPlugin);
     //app.use(CalendarPlugin);
   }

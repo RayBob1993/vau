@@ -1,2 +1,2 @@
 import type { Plugin } from 'vue';
-export declare const VauUI: Plugin;
+export declare const Vau: Plugin;
