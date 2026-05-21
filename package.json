@@ -79,6 +79,7 @@
   "files": [
     "dist",
     "src/lib/styles/core",
+    "src/lib/styles/base",
     "package.json"
   ],
   "packageManager": "pnpm@11.1.3",

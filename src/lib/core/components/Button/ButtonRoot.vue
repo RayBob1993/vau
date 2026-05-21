@@ -46,7 +46,10 @@
     :disabled="isDisabled"
     :type="type"
   >
-    <Spinner.Root v-if="loading"/>
+    <Spinner.Root
+      v-if="loading"
+      :size="size"
+    />
 
     <slot/>
   </Primitive.Root>
