@@ -1,7 +1,8 @@
 import type { FormItemError, FormItemValidationStatus, FormValidationResult, FormModel } from '../types';
 import type { ZodObject } from 'zod';
 import type { MaybeNull } from '../../../types';
-import { type MaybeRefOrGetter, type Ref, computed, ref, toValue } from 'vue';
+import { takeLatest } from '../../../utils';
+import { type MaybeRefOrGetter, type Ref, computed, onScopeDispose, ref, toValue } from 'vue';
 
 export interface UseFormItemValidationOptions {
   data: MaybeRefOrGetter<MaybeNull<FormModel>>;
@@ -16,6 +17,10 @@ export interface UseFormItemValidationReturn {
   clearValidateErrors: VoidFunction;
   validate: (silent?: boolean) => FormValidationResult;
 }
+
+type ParseResult =
+  | { ok: true; }
+  | { ok: false; issues: Array<FormItemError>; };
 
 export function useFormItemValidation (options: UseFormItemValidationOptions): UseFormItemValidationReturn {
   const data = computed<MaybeNull<FormModel>>(() => toValue(options.data));
@@ -33,7 +38,28 @@ export function useFormItemValidation (options: UseFormItemValidationOptions): U
     validationStatus.value = { ...validationStatus.value, ...partial };
   }
 
+  /**
+   * Чистый parse без записи в UI — side effects только при isLatest.
+   */
+  const parseLatest = takeLatest(async (): Promise<ParseResult | null> => {
+    if (!data.value || !schema.value) {
+      return null;
+    }
+
+    const result = await schema.value.safeParseAsync(data.value);
+
+    if (result.success) {
+      return { ok: true };
+    }
+
+    return {
+      ok: false,
+      issues: result.error.issues
+    };
+  });
+
   function clearValidateErrors () {
+    parseLatest.cancel();
     validationErrors.value = [];
 
     setValidationStatus({
@@ -54,31 +80,45 @@ export function useFormItemValidation (options: UseFormItemValidationOptions): U
 
     setValidationStatus({ isValidating: true });
 
-    const result = await schema.value.safeParseAsync(data.value);
+    const { value: parsed, isLatest } = await parseLatest();
+
+    if (!isLatest) {
+      if (!parseLatest.isPending()) {
+        setValidationStatus({ isValidating: false });
+      }
+
+      /* Возвращаем результат этого запуска для агрегации на форме, UI не трогаем. */
+      return parsed?.ok === true;
+    }
 
     setValidationStatus({ isValidating: false });
 
-    if (result.success) {
+    if (parsed === null) {
+      return false;
+    }
+
+    if (parsed.ok) {
       validationErrors.value = [];
       setValidationStatus({ isError: false, isSuccess: true });
 
       options.onValid?.();
 
       return true;
-    } else {
-      if (!silent) {
-        setValidationStatus({ isError: true, isSuccess: false });
-
-        if (result.error) {
-          validationErrors.value = result.error.issues;
-        }
-      }
-
-      options.onInvalid?.();
-
-      return false;
     }
+
+    if (!silent) {
+      setValidationStatus({ isError: true, isSuccess: false });
+      validationErrors.value = parsed.issues;
+    }
+
+    options.onInvalid?.();
+
+    return false;
   }
+
+  onScopeDispose(() => {
+    parseLatest.cancel();
+  });
 
   return {
     validationStatus,

@@ -1,5 +1,6 @@
-import type { FormItemInstance, FormValidationResult } from '../types';
-import { computed, toValue, type MaybeRefOrGetter } from 'vue';
+import type { FormItemInstance, FormRootValidationResult } from '../types';
+import { takeLatest } from '../../../utils';
+import { computed, onScopeDispose, toValue, type MaybeRefOrGetter } from 'vue';
 
 export interface UseFormValidationOptions {
   formItems: MaybeRefOrGetter<Array<FormItemInstance>>;
@@ -12,10 +13,23 @@ export function useFormValidation (options: UseFormValidationOptions) {
 
   const validatableFormItems = computed<Array<FormItemInstance>>(() => formItems.value.filter(formItem => formItem.isValidatable));
 
-  async function validate (silent = false): FormValidationResult {
-    const validationPromises = await Promise.all(validatableFormItems.value.map(formItem => formItem.validate(silent)));
+  /**
+   * Агрегация validate полей: колбэки onValid/onInvalid — только у последнего прогона.
+   */
+  const validateLatest = takeLatest(async (silent: boolean): Promise<boolean> => {
+    const validationPromises = await Promise.all(
+      validatableFormItems.value.map(formItem => formItem.validate(silent))
+    );
 
-    const isValid = validationPromises.every(Boolean);
+    return validationPromises.every(Boolean);
+  });
+
+  async function validate (silent = false): FormRootValidationResult {
+    const { value: isValid, isLatest } = await validateLatest(silent);
+
+    if (!isLatest) {
+      return undefined;
+    }
 
     if (isValid) {
       options.onValid?.();
@@ -27,8 +41,13 @@ export function useFormValidation (options: UseFormValidationOptions) {
   }
 
   function clearValidate () {
+    validateLatest.cancel();
     formItems.value.forEach(formItem => formItem.clearValidateErrors());
   }
+
+  onScopeDispose(() => {
+    validateLatest.cancel();
+  });
 
   return {
     validatableFormItems,

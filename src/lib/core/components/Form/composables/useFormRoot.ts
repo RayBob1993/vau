@@ -63,7 +63,9 @@ export function useFormRoot <MODEL extends FormModel> (options: UseFormRootOptio
 
     const result = await validate(true);
 
-    setIsValid(result);
+    if (result !== undefined) {
+      setIsValid(result);
+    }
   }, {
     immediate: true
   });
@@ -71,15 +73,19 @@ export function useFormRoot <MODEL extends FormModel> (options: UseFormRootOptio
   const debouncedValidateModel = debounce(async () => {
     const result = await validate(true);
 
-    setIsValid(result);
+    if (result !== undefined) {
+      setIsValid(result);
+    }
   }, 400);
 
   async function validateAndSyncIsValid (silent = false) {
     const result = await validate(silent);
 
-    setIsValid(result);
+    if (result !== undefined) {
+      setIsValid(result);
+    }
 
-    return result;
+    return result ?? false;
   }
 
   watch(() => toValue(options.modelValue), () => {

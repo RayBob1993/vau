@@ -37,6 +37,12 @@ export interface FormSlots {
 
 export type FormValidationResult = Promise<boolean>;
 
+/**
+ * Результат validate на уровне формы: `undefined` — прогон устарел (takeLatest),
+ * `isValid` обновлять не нужно.
+ */
+export type FormRootValidationResult = Promise<boolean | undefined>;
+
 export interface FormInstance {
   validate: (silent?: boolean) => FormValidationResult;
   clearValidate: VoidFunction;
