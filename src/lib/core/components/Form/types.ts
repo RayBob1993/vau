@@ -54,7 +54,8 @@ export type FormItemError = ZodError['issues'][number];
 export interface FormItemProps {
   disabled?: boolean;
   /**
-   * Имя поля в model и rules (только ключ верхнего уровня, без вложенных path).
+   * Имя поля в model и rules.
+   * Должно быть уникальным среди смонтированных FormItem одной формы.
    */
   name?: string;
 }
