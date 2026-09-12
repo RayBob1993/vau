@@ -54,7 +54,10 @@ var f = /* @__PURE__ */ o({
 			disabled: u(h),
 			type: o.type
 		}, {
-			default: d(() => [o.loading ? (c(), i(u(r).Root, { key: 0 })) : a("", !0), l(e.$slots, "default")]),
+			default: d(() => [o.loading ? (c(), i(u(r).Root, {
+				key: 0,
+				size: o.size
+			}, null, 8, ["size"])) : a("", !0), l(e.$slots, "default")]),
 			_: 3
 		}, 8, [
 			"as",
