@@ -21,8 +21,7 @@
     validate,
     clearValidate,
     reset
-  } = useFormRoot<MODEL>({
-    modelValue: () => modelValue.value,
+  } = useFormRoot({
     onValid: () => {
       emit('valid');
     },
@@ -48,6 +47,7 @@
   });
 
   defineExpose<FormExpose>({
+    isValid,
     validate,
     clearValidate,
     reset

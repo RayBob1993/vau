@@ -1,6 +1,7 @@
 import type { FormItemError, FormItemValidationStatus, FormValidationResult, FormModel } from '../types';
 import type { ZodObject } from 'zod';
 import type { MaybeNull } from '../../../types';
+import { useToggle } from '../../../composables';
 import { takeLatest } from '../../../utils';
 import { type MaybeRefOrGetter, type Ref, computed, onScopeDispose, ref, toValue } from 'vue';
 
@@ -12,6 +13,8 @@ export interface UseFormItemValidationOptions {
 }
 
 export interface UseFormItemValidationReturn {
+  /** Логический результат последнего parse (для агрегации Form.isValid). */
+  isFieldValid: Ref<boolean>;
   validationStatus: Ref<FormItemValidationStatus>;
   validationErrors: Ref<Array<FormItemError>>;
   clearValidateErrors: VoidFunction;
@@ -25,6 +28,8 @@ type ParseResult =
 export function useFormItemValidation (options: UseFormItemValidationOptions): UseFormItemValidationReturn {
   const data = computed<MaybeNull<FormModel>>(() => toValue(options.data));
   const schema = computed<MaybeNull<ZodObject>>(() => toValue(options.schema));
+
+  const [isFieldValid, setIsFieldValid] = useToggle(false);
 
   const validationStatus = ref<FormItemValidationStatus>({
     isError: false,
@@ -60,6 +65,7 @@ export function useFormItemValidation (options: UseFormItemValidationOptions): U
 
   function clearValidateErrors () {
     parseLatest.cancel();
+    setIsFieldValid(false);
     validationErrors.value = [];
 
     setValidationStatus({
@@ -71,10 +77,14 @@ export function useFormItemValidation (options: UseFormItemValidationOptions): U
 
   async function validate (silent = false): Promise<boolean> {
     if (!data.value) {
+      setIsFieldValid(false);
+
       return false;
     }
 
     if (!schema.value) {
+      setIsFieldValid(false);
+
       return false;
     }
 
@@ -87,28 +97,41 @@ export function useFormItemValidation (options: UseFormItemValidationOptions): U
         setValidationStatus({ isValidating: false });
       }
 
-      /* Возвращаем результат этого запуска для агрегации на форме, UI не трогаем. */
+      /* Результат этого запуска для агрегации / Promise.all; UI не трогаем. */
       return parsed?.ok === true;
     }
 
     setValidationStatus({ isValidating: false });
 
     if (parsed === null) {
+      setIsFieldValid(false);
+
       return false;
     }
 
     if (parsed.ok) {
+      setIsFieldValid(true);
       validationErrors.value = [];
-      setValidationStatus({ isError: false, isSuccess: true });
+      setValidationStatus({ isError: false });
+
+      /* UI-успех только при «громкой» валидации — silent нужен для isValid кнопки. */
+      if (!silent) {
+        setValidationStatus({ isSuccess: true });
+      }
 
       options.onValid?.();
 
       return true;
     }
 
+    setIsFieldValid(false);
+
     if (!silent) {
       setValidationStatus({ isError: true, isSuccess: false });
       validationErrors.value = parsed.issues;
+    } else {
+      /* Silent fail: логика невалидна, зелёный UI сбрасываем, ошибки не показываем. */
+      setValidationStatus({ isSuccess: false });
     }
 
     options.onInvalid?.();
@@ -121,6 +144,7 @@ export function useFormItemValidation (options: UseFormItemValidationOptions): U
   });
 
   return {
+    isFieldValid,
     validationStatus,
     validationErrors,
     clearValidateErrors,

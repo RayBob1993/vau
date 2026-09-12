@@ -38,12 +38,12 @@ export interface FormSlots {
 export type FormValidationResult = Promise<boolean>;
 
 /**
- * Результат validate на уровне формы: `undefined` — прогон устарел (takeLatest),
- * `isValid` обновлять не нужно.
+ * Результат validate на уровне формы: `undefined` — прогон устарел (takeLatest).
  */
 export type FormRootValidationResult = Promise<boolean | undefined>;
 
 export interface FormInstance {
+  isValid: ComputedRef<boolean>;
   validate: (silent?: boolean) => FormValidationResult;
   clearValidate: VoidFunction;
   reset: VoidFunction;
@@ -92,13 +92,22 @@ export interface FormItemValidationStatus {
   isSuccess: boolean;
 }
 
+/**
+ * Зарегистрированный FormItem в реестре формы.
+ * Логический результат поля — `isFieldValid` (для агрегации `isValid` формы).
+ * `validationStatus` — только UI (ошибки / успех / pending).
+ */
 export interface FormItemInstance {
   id: string;
-  isValidatable: boolean;
-  isRequired: boolean;
-  props: FormItemProps;
+  readonly isValidatable: boolean;
+  /**
+   * Результат последнего parse поля (в т.ч. silent).
+   * Не зависит от показа ошибок в UI.
+   */
+  readonly isFieldValid: boolean;
+  readonly isRequired: boolean;
+  readonly props: FormItemProps;
   validate: (silent?: boolean) => FormValidationResult;
-  validationStatus: FormItemValidationStatus;
   clearValidateErrors: VoidFunction;
   reset: VoidFunction;
 }

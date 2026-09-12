@@ -4,7 +4,7 @@ import { useFormField } from './useFormField';
 import { useFormItemValidation } from './useFormItemValidation';
 import { getProp, debounce } from '../../../utils';
 import { z, type ZodType } from 'zod';
-import { computed, type MaybeRefOrGetter, onUnmounted, toValue, useId, watch } from 'vue';
+import { computed, type MaybeRefOrGetter, onMounted, onUnmounted, toValue, useId, watch } from 'vue';
 
 export interface UseFormItemOptions {
   formRootContext: MaybeNull<FormRootContext>;
@@ -60,6 +60,7 @@ export function useFormItem (options: UseFormItemOptions) {
   });
 
   const {
+    isFieldValid,
     validationStatus,
     validationErrors,
     clearValidateErrors,
@@ -102,19 +103,6 @@ export function useFormItem (options: UseFormItemOptions) {
     return validateField(silent);
   }
 
-  const instance = computed<FormItemInstance>(() => ({
-    id,
-    props: props.value,
-    validationStatus: validationStatus.value,
-    isValidatable: isValidatable.value,
-    isRequired: isRequired.value,
-    registerField,
-    unregisterField,
-    reset,
-    validate,
-    clearValidateErrors
-  }));
-
   function reset () {
     if (!props.value.name) {
       return;
@@ -125,42 +113,78 @@ export function useFormItem (options: UseFormItemOptions) {
     clearValidateErrors();
   }
 
+  /**
+   * Стабильный handle в реестре формы: геттеры читают актуальные ref
+   */
+  const instance: FormItemInstance = {
+    id,
+    get props () {
+      return props.value;
+    },
+    get isValidatable () {
+      return isValidatable.value;
+    },
+    get isFieldValid () {
+      return isFieldValid.value;
+    },
+    get isRequired () {
+      return isRequired.value;
+    },
+    validate,
+    reset,
+    clearValidateErrors
+  };
+
   const debouncedValidate = debounce(() => {
-    if (isDisabled.value) {
+    if (!isValidatable.value) {
       return;
     }
 
     void validate();
   }, 300);
 
+  /** Тихий parse — обновить isFieldValid без показа ошибок (для isValid кнопки). */
+  function validateSilent () {
+    if (!isValidatable.value) {
+      return;
+    }
+
+    void validate(true);
+  }
+
+  onMounted(() => {
+    options.formRootContext?.registerFormItem(instance);
+    validateSilent();
+  });
+
   onUnmounted(() => {
     debouncedValidate.cancel();
     options.formRootContext?.unregisterFormItem(id);
   });
 
-  watch(instance, newInstance => {
-    options.formRootContext?.registerFormItem(newInstance);
-  }, {
-    deep: true,
-    immediate: true
-  });
-
   watch(value, () => {
-    if (isDisabled.value) {
+    if (!isValidatable.value) {
       return;
     }
 
     debouncedValidate();
   });
 
-  watch(isDisabled, disabled => {
-    if (disabled) {
+  watch(isValidatable, (validatable, wasValidatable) => {
+    if (validatable && !wasValidatable) {
+      validateSilent();
+
+      return;
+    }
+
+    if (!validatable) {
       clearValidateErrors();
     }
   });
 
   return {
     id,
+    isFieldValid,
     validationErrors,
     validationStatus,
     isDisabled,
