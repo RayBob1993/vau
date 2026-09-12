@@ -1,13 +1,14 @@
 import type { InputTagsProps, InputTagsModelValue } from '../types';
 import type { FormRootContext, FormItemContext } from '../../Form';
 import type { MaybeNull } from '../../../types';
-import { computed, type MaybeRefOrGetter, toValue } from 'vue';
+import { computed, type MaybeRefOrGetter, onMounted, onUnmounted, toValue } from 'vue';
 
 export interface UseInputTagsRootOptions {
   formRootContext: MaybeNull<FormRootContext>;
   formItemContext: MaybeNull<FormItemContext>;
   props: MaybeRefOrGetter<InputTagsProps>;
   modelValue: MaybeRefOrGetter<InputTagsModelValue>;
+  onUpdateModelValue?: (value: InputTagsModelValue) => void;
 }
 
 export function useInputTagsRoot (options: UseInputTagsRootOptions) {
@@ -19,6 +20,21 @@ export function useInputTagsRoot (options: UseInputTagsRootOptions) {
       options.formItemContext?.props.disabled ||
       props.value?.disabled
     );
+  });
+
+  function reset () {
+    options.onUpdateModelValue?.([]);
+  }
+
+  onMounted(() => {
+    options.formItemContext?.registerField({
+      reset,
+      isDisabled: () => Boolean(props.value?.disabled)
+    });
+  });
+
+  onUnmounted(() => {
+    options.formItemContext?.unregisterField();
   });
 
   return {

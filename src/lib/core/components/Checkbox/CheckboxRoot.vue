@@ -17,7 +17,10 @@
     formRootContext,
     formItemContext,
     props: () => props,
-    modelValue: () => modelValue.value
+    modelValue: () => modelValue.value,
+    onUpdateModelValue: value => {
+      modelValue.value = value;
+    }
   });
 
   const inputRef = useTemplateRef<HTMLInputElement>('inputRef');

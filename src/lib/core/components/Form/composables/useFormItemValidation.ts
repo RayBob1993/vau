@@ -35,6 +35,12 @@ export function useFormItemValidation (options: UseFormItemValidationOptions): U
 
   function clearValidateErrors () {
     validationErrors.value = [];
+
+    setValidationStatus({
+      isError: false,
+      isSuccess: false,
+      isValidating: false
+    });
   }
 
   async function validate (silent = false): Promise<boolean> {
@@ -53,6 +59,7 @@ export function useFormItemValidation (options: UseFormItemValidationOptions): U
     setValidationStatus({ isValidating: false });
 
     if (result.success) {
+      validationErrors.value = [];
       setValidationStatus({ isError: false, isSuccess: true });
 
       options.onValid?.();

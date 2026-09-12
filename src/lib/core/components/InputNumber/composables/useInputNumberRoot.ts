@@ -3,7 +3,7 @@ import type { FormRootContext, FormItemContext } from '../../Form';
 import type { MaybeNull } from '../../../types';
 import { INPUT_NUMBER_STEP } from '../constants';
 import { isNumber } from '../../../utils';
-import { computed, type MaybeRefOrGetter, toValue } from 'vue';
+import { computed, type MaybeRefOrGetter, onMounted, onUnmounted, toValue } from 'vue';
 
 export interface UseInputNumberRootOptions {
   formRootContext: MaybeNull<FormRootContext>;
@@ -65,6 +65,21 @@ export function useInputNumberRoot (options: UseInputNumberRootOptions) {
   function setModelValue (value: InputNumberModelValue) {
     options.onUpdateModelValue?.(value);
   }
+
+  function reset () {
+    setModelValue(0);
+  }
+
+  onMounted(() => {
+    options.formItemContext?.registerField({
+      reset,
+      isDisabled: () => Boolean(props.value.disabled)
+    });
+  });
+
+  onUnmounted(() => {
+    options.formItemContext?.unregisterField();
+  });
 
   return {
     step,

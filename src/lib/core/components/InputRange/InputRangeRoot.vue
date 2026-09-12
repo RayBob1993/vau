@@ -17,7 +17,10 @@
     formRootContext,
     formItemContext,
     modelValue: () => modelValue.value,
-    props: () => props
+    props: () => props,
+    onUpdateModelValue: value => {
+      modelValue.value = value;
+    }
   });
 
   provide(InputRangeRootContextKey, {

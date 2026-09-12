@@ -28,7 +28,16 @@ export function useFormItem (options: UseFormItemOptions) {
 
   const value = computed<FormModelValues>(() => name.value && modelValue.value && getProp(modelValue.value, name.value));
 
-  const isDisabled = computed<boolean>(() => Boolean(options.formRootContext?.props.disabled || props.value?.disabled));
+  /**
+   * Disabled формы, FormItem или зарегистрированного контрола (например VInput disabled).
+   */
+  const isDisabled = computed<boolean>(() => {
+    return Boolean(
+      options.formRootContext?.props.disabled ||
+      props.value?.disabled ||
+      toValue(field.value?.isDisabled)
+    );
+  });
 
   const rule = computed<MaybeNull<ZodType>>(() => {
     if (!name.value || !rules.value) {
@@ -40,10 +49,10 @@ export function useFormItem (options: UseFormItemOptions) {
     return ruleValue instanceof z.ZodType ? ruleValue : null;
   });
 
-  const isValidatable = computed<boolean>(() => Boolean(rule.value));
+  const isValidatable = computed<boolean>(() => Boolean(rule.value) && !isDisabled.value);
 
   const isRequired = computed<boolean>(() => {
-    if (!rule.value) {
+    if (!rule.value || isDisabled.value) {
       return false;
     }
 
@@ -54,7 +63,7 @@ export function useFormItem (options: UseFormItemOptions) {
     validationStatus,
     validationErrors,
     clearValidateErrors,
-    validate
+    validate: validateField
   } = useFormItemValidation({
     data: () => {
       if (!name.value) {
@@ -82,6 +91,17 @@ export function useFormItem (options: UseFormItemOptions) {
     }
   });
 
+  /**
+   * Disabled-поле не участвует в валидации и не блокирует форму.
+   */
+  async function validate (silent = false): Promise<boolean> {
+    if (isDisabled.value) {
+      return true;
+    }
+
+    return validateField(silent);
+  }
+
   const instance = computed<FormItemInstance>(() => ({
     id,
     props: props.value,
@@ -96,16 +116,22 @@ export function useFormItem (options: UseFormItemOptions) {
   }));
 
   function reset () {
-    if (!value.value || !props.value.name) {
+    if (!props.value.name) {
       return;
     }
 
-    field.value?.reset();
+    field.value?.reset?.();
 
     clearValidateErrors();
   }
 
-  const debouncedValidate = debounce(() => validate(), 300);
+  const debouncedValidate = debounce(() => {
+    if (isDisabled.value) {
+      return;
+    }
+
+    void validate();
+  }, 300);
 
   onUnmounted(() => {
     debouncedValidate.cancel();
@@ -119,10 +145,16 @@ export function useFormItem (options: UseFormItemOptions) {
     immediate: true
   });
 
-  watch(value, () => debouncedValidate());
+  watch(value, () => {
+    if (isDisabled.value) {
+      return;
+    }
 
-  watch(() => validationStatus.value.isSuccess, boolean => {
-    if (boolean) {
+    debouncedValidate();
+  });
+
+  watch(isDisabled, disabled => {
+    if (disabled) {
       clearValidateErrors();
     }
   });

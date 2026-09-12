@@ -3,7 +3,7 @@ import type { FormRootContext, FormItemContext } from '../../Form';
 import type { InputModelValue, InputProps } from '../types';
 import { InputTypes } from '../../../constants';
 import { useToggle } from '../../../composables';
-import { computed, type MaybeRefOrGetter, toValue } from 'vue';
+import { computed, type MaybeRefOrGetter, onMounted, onUnmounted, toValue } from 'vue';
 
 export interface UseInputRootOptions {
   formRootContext: MaybeNull<FormRootContext>;
@@ -38,6 +38,17 @@ export function useInputRoot (options: UseInputRootOptions) {
   function reset () {
     setModelValue('');
   }
+
+  onMounted(() => {
+    options.formItemContext?.registerField({
+      reset,
+      isDisabled: () => Boolean(props.value?.disabled)
+    });
+  });
+
+  onUnmounted(() => {
+    options.formItemContext?.unregisterField();
+  });
 
   return {
     isFocus,

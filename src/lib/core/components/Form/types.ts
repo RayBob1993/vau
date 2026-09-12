@@ -1,5 +1,5 @@
 import type { ZodError, ZodType } from 'zod';
-import type { ComputedRef, ModelRef, Ref, VNode } from 'vue';
+import type { ComputedRef, MaybeRefOrGetter, ModelRef, Ref, VNode } from 'vue';
 
 export type FormModelValues = unknown;
 
@@ -63,7 +63,8 @@ export interface FormItemSlots {
 }
 
 export interface FormItemField {
-  reset: VoidFunction;
+  reset?: VoidFunction;
+  isDisabled?: MaybeRefOrGetter<boolean>;
 }
 
 export interface FormItemContext {

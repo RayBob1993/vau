@@ -18,6 +18,9 @@
     formItemContext,
     props: () => props,
     modelValue: () => modelValue.value,
+    onUpdateModelValue: value => {
+      modelValue.value = value;
+    }
   });
 
   provide(SwitchRootContextKey, {

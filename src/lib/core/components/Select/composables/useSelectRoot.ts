@@ -107,7 +107,8 @@ export function useSelectRoot (options: UseSelectRootOptions) {
 
   onMounted(() => {
     options.formItemContext?.registerField({
-      reset
+      reset,
+      isDisabled: () => Boolean(props.value?.disabled)
     });
   });
 
