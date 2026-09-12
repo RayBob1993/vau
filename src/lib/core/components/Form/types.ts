@@ -107,6 +107,7 @@ export interface FormItemInstance {
   readonly isFieldValid: boolean;
   readonly isRequired: boolean;
   readonly props: FormItemProps;
+  readonly el: HTMLElement | null;
   validate: (silent?: boolean) => FormValidationResult;
   clearValidateErrors: VoidFunction;
   reset: VoidFunction;

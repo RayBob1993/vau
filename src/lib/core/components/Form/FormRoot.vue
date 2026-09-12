@@ -22,6 +22,7 @@
     clearValidate,
     reset
   } = useFormRoot({
+    scrollToError: () => props.scrollToError,
     onValid: () => {
       emit('valid');
     },

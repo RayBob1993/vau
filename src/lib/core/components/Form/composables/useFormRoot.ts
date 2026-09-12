@@ -1,9 +1,12 @@
+import type { Maybe } from '../../../types';
 import { useFormItems } from './useFormItems';
 import { useFormValidation } from './useFormValidation';
+import { useFormRootScrollError } from './useFormRootScrollError';
 import { useToggle } from '../../../composables';
-import { computed, nextTick, onMounted } from 'vue';
+import { computed, nextTick, onMounted, type MaybeRefOrGetter } from 'vue';
 
 export interface UseFormRootOptions {
+  scrollToError?: MaybeRefOrGetter<Maybe<boolean | ScrollIntoViewOptions>>;
   onValid?: VoidFunction;
   onInvalid?: VoidFunction;
 }
@@ -18,6 +21,11 @@ export function useFormRoot (options: UseFormRootOptions = {}) {
     onInvalid: () => {
       options.onInvalid?.();
     }
+  });
+
+  const { scrollToFirstError } = useFormRootScrollError({
+    scrollToError: options.scrollToError,
+    validatableFormItems
   });
 
   /**
@@ -63,7 +71,16 @@ export function useFormRoot (options: UseFormRootOptions = {}) {
   async function validate (silent = false): Promise<boolean> {
     const result = await validateForm(silent);
 
-    return result ?? false;
+    if (result === undefined) {
+      return false;
+    }
+
+    if (!silent && !result) {
+      await nextTick();
+      scrollToFirstError();
+    }
+
+    return result;
   }
 
   onMounted(async () => {

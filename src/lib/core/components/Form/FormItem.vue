@@ -2,7 +2,7 @@
   import type { FormItemProps, FormItemSlots, FormItemEmits, FormItemExpose, FormItemScopedSlot } from './types';
   import { FormItemContextKey, useFormRootContext } from './context';
   import { useFormItem } from './composables';
-  import { computed, provide } from 'vue';
+  import { computed, provide, useTemplateRef } from 'vue';
 
   const props = defineProps<FormItemProps>();
   const emit = defineEmits<FormItemEmits>();
@@ -10,6 +10,8 @@
   const slots  = defineSlots<FormItemSlots>();
 
   const formRootContext = useFormRootContext();
+
+  const rootEl = useTemplateRef<HTMLElement>('rootEl');
 
   const {
     validationErrors,
@@ -24,6 +26,7 @@
   } = useFormItem({
     formRootContext,
     props: () => props,
+    el: () => rootEl.value,
     onValid: () => {
       emit('valid');
     },
@@ -60,6 +63,7 @@
 
 <template>
   <div
+    ref="rootEl"
     class="form-item"
     :class="[
       {

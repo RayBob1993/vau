@@ -1,29 +1,27 @@
 import { isString } from '../utils';
-import { type Ref, isRef, unref, type ShallowRef } from 'vue';
+import { type MaybeRefOrGetter, toValue } from 'vue';
 
 /**
- * @description `useScrollTo` — это функция, которая позволяет плавно прокручивать страницу к указанному элементу.
- * @description Она принимает в качестве аргумента элемент, к которому нужно прокрутить, и дополнительные параметры для настройки поведения прокрутки.
+ * @description `useScrollTo` — плавная прокрутка к элементу.
+ * Элемент: `MaybeRefOrGetter` (`Element`, `ref`/`shallowRef`, getter) или CSS-селектор (`string`).
  *
  * @example
- * <template>
- *   <div ref="myElement">Hello, world!</button>
- * </template>
+ * ```ts
+ * const myElement = useTemplateRef<HTMLDivElement>('myElement');
  *
- * <script lang="ts" setup>
- *   import { useTemplateRef } from 'vue';
- *
- *   const myElement = useTemplateRef<HTMLDivElement>();
- *
- *   function scrollToMyElement() {
- *     useScrollTo(myElement, { behavior: 'smooth' });
- *   }
- * </script>
+ * useScrollTo(myElement, { behavior: 'smooth' });
+ * useScrollTo(() => target.el);
+ * useScrollTo('.form-item--invalid');
+ * ```
  */
-export function useScrollTo (el: Element | Ref<Element> | Readonly<ShallowRef<Element | null>> | string, options?: ScrollIntoViewOptions) {
-  const element = isString(el)
-    ? document.querySelector(el)
-    : isRef(el) ? unref(el) : el;
+export function useScrollTo (
+  el: MaybeRefOrGetter<Element | string | null | undefined>,
+  options?: ScrollIntoViewOptions
+) {
+  const resolved = toValue(el);
+  const element = isString(resolved)
+    ? document.querySelector(resolved)
+    : resolved;
 
   element?.scrollIntoView({
     behavior: 'smooth',

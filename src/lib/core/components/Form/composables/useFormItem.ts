@@ -9,6 +9,7 @@ import { computed, type MaybeRefOrGetter, onMounted, onUnmounted, toValue, useId
 export interface UseFormItemOptions {
   formRootContext: MaybeNull<FormRootContext>;
   props: MaybeRefOrGetter<FormItemProps>;
+  el?: MaybeRefOrGetter<MaybeNull<HTMLElement>>;
   onValid?: VoidFunction;
   onInvalid?: VoidFunction;
 }
@@ -129,6 +130,9 @@ export function useFormItem (options: UseFormItemOptions) {
     },
     get isRequired () {
       return isRequired.value;
+    },
+    get el () {
+      return toValue(options.el) ?? null;
     },
     validate,
     reset,
