@@ -1,6 +1,7 @@
 .input-number {
   display: flex;
   flex-wrap: nowrap;
+  border: var(--input-number-size, 0) var(--input-number-type, solid) var(--input-number-color, transparent);
 
   &--direction {
     &-vertical {

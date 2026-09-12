@@ -1,3 +1,5 @@
 .select {
   position: relative;
+
+  border: var(--select-border-size, 0) var(--select-border-type, solid) var(--select-border-color, transparent);
 }

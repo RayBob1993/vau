@@ -1,9 +1,11 @@
 .input {
   display: flex;
   flex-flow: row nowrap;
+  border: var(--input-border-size, 0) var(--input-border-type, solid) var(--input-border-color, transparent);
   padding: var(--input-padding-y, 0) var(--input-padding-x, 0);
 
   background-color: var(--input-background-color);
+  border-radius: var(--input-border-radius);
 
   transition: var(--transition-base);
 }

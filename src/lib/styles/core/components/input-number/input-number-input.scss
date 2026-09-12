@@ -1,6 +1,7 @@
 @use '../../mixins/appearance' as *;
 
 .input-number-input {
+  flex: 1;
   padding: var(--input-number-input-padding-x, 0) var(--input-number-padding-y, 0);
 
   &__native {
