@@ -2,7 +2,7 @@ import type { Maybe, MaybeNull } from '../../../types';
 import type { FormRootContext, FormItemProps, FormModelValues, FormItemInstance, FormModel, FormRules } from '../types';
 import { useFormField } from './useFormField';
 import { useFormItemValidation } from './useFormItemValidation';
-import { getProp, debounce } from '../../../utils';
+import { debounce } from '../../../utils';
 import { z, type ZodType } from 'zod';
 import { computed, type MaybeRefOrGetter, onMounted, onUnmounted, toValue, useId, watch } from 'vue';
 
@@ -27,7 +27,13 @@ export function useFormItem (options: UseFormItemOptions) {
 
   const rules = computed<Maybe<FormRules<FormModel>>>(() => options.formRootContext?.props?.rules);
 
-  const value = computed<FormModelValues>(() => name.value && modelValue.value && getProp(modelValue.value, name.value));
+  const value = computed<FormModelValues>(() => {
+    if (!name.value || !modelValue.value) {
+      return undefined;
+    }
+
+    return modelValue.value[name.value];
+  });
 
   /**
    * Disabled формы, FormItem или зарегистрированного контрола (например VInput disabled).
@@ -45,7 +51,7 @@ export function useFormItem (options: UseFormItemOptions) {
       return null;
     }
 
-    const ruleValue = getProp(rules.value, name.value);
+    const ruleValue = rules.value[name.value];
 
     return ruleValue instanceof z.ZodType ? ruleValue : null;
   });

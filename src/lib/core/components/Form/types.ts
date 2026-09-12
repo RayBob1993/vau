@@ -6,7 +6,7 @@ export type FormModelValues = unknown;
 export type FormModel = Record<string, FormModelValues>;
 
 export type FormRules <MODEL> = {
-  [K in keyof MODEL]: ZodType<MODEL[K], MODEL[K]>;
+  [K in keyof MODEL]?: ZodType<MODEL[K], MODEL[K]>;
 };
 
 export interface FormProps<MODEL> {
@@ -53,6 +53,9 @@ export type FormItemError = ZodError['issues'][number];
 
 export interface FormItemProps {
   disabled?: boolean;
+  /**
+   * Имя поля в model и rules (только ключ верхнего уровня, без вложенных path).
+   */
   name?: string;
 }
 
