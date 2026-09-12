@@ -22,22 +22,8 @@ export function useInputRangeRoot (options: UseInputRangeRootOptions) {
     );
   });
 
-  function reset () {
-    const min = props.value.min ?? 0;
-    const current = toValue(options.modelValue);
-
-    if (Array.isArray(current)) {
-      options.onUpdateModelValue?.([min, min]);
-
-      return;
-    }
-
-    options.onUpdateModelValue?.(min);
-  }
-
   onMounted(() => {
     options.formItemContext?.registerField({
-      reset,
       isDisabled: () => Boolean(props.value?.disabled)
     });
   });

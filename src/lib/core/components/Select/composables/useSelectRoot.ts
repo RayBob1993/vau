@@ -14,7 +14,6 @@ export interface UseSelectRootOptions {
   props: MaybeRefOrGetter<SelectProps>;
   onChange?: (value: OptionValue) => void;
   onChangeModel?: (value: SelectModelValue) => void;
-  onClear?: VoidFunction;
 }
 
 export function useSelectRoot (options: UseSelectRootOptions) {
@@ -70,17 +69,6 @@ export function useSelectRoot (options: UseSelectRootOptions) {
     options.onChange?.(value);
   }
 
-  function reset () {
-    if (isSelectMultiple(modelValue.value, props.value.multiple)) {
-      options.onChangeModel?.([]);
-
-      return;
-    }
-
-    options.onChangeModel?.('');
-    options.onClear?.();
-  }
-
   function open () {
     if (isDisabled.value) {
       return;
@@ -107,7 +95,6 @@ export function useSelectRoot (options: UseSelectRootOptions) {
 
   onMounted(() => {
     options.formItemContext?.registerField({
-      reset,
       isDisabled: () => Boolean(props.value?.disabled)
     });
   });
@@ -127,7 +114,6 @@ export function useSelectRoot (options: UseSelectRootOptions) {
     toggle,
     registerOption,
     unregisterOption,
-    setModelValue,
-    reset
+    setModelValue
   };
 }

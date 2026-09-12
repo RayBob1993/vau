@@ -5,7 +5,7 @@ import { type MaybeRefOrGetter, toValue } from 'vue';
 
 export interface UseFormRootScrollErrorOptions {
   scrollToError?: MaybeRefOrGetter<Maybe<boolean | ScrollIntoViewOptions>>;
-  validatableFormItems: MaybeRefOrGetter<Array<FormItemInstance>>;
+  formItems: MaybeRefOrGetter<Array<FormItemInstance>>;
 }
 
 function resolveScrollToErrorOptions (
@@ -33,7 +33,7 @@ export function useFormRootScrollError (options: UseFormRootScrollErrorOptions) 
       return;
     }
 
-    const items = toValue(options.validatableFormItems);
+    const items = toValue(options.formItems);
     const target = items.find(item => !item.isFieldValid && item.el);
 
     if (!target?.el) {

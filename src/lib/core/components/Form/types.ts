@@ -69,7 +69,6 @@ export interface FormItemSlots {
 }
 
 export interface FormItemField {
-  reset?: VoidFunction;
   isDisabled?: MaybeRefOrGetter<boolean>;
 }
 

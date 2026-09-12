@@ -26,13 +26,8 @@ export function useRadioRoot (options: UseRadioRootOptions) {
 
   const isActive = computed<boolean>(() => modelValue.value === props.value.value);
 
-  function reset () {
-    options.onUpdateModelValue?.('');
-  }
-
   onMounted(() => {
     options.formItemContext?.registerField({
-      reset,
       /**
        * Disabled отдельной radio-опции не отключает валидацию FormItem.
        * Для всего поля используйте disabled на FormItem/Form.

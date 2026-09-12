@@ -12,7 +12,7 @@ export function useInputAfter (options: UseInputAfterOptions) {
   const isClearable = computed<boolean>(() => Boolean(inputRootProps.value?.clearable));
 
   function handleClear () {
-    options.inputRootContext?.reset();
+    options.inputRootContext?.clear();
   }
 
   return {

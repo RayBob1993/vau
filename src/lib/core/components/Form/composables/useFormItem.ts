@@ -64,7 +64,7 @@ export function useFormItem (options: UseFormItemOptions) {
     isFieldValid,
     validationStatus,
     validationErrors,
-    clearValidateErrors,
+    clearValidateErrors: clearFieldValidateErrors,
     validate: validateField
   } = useFormItemValidation({
     data: () => {
@@ -104,14 +104,24 @@ export function useFormItem (options: UseFormItemOptions) {
     return validateField(silent);
   }
 
+  /**
+   * Сброс UI-статуса валидации поля.
+   */
   function reset () {
-    if (!props.value.name) {
+    clearValidateErrors();
+  }
+
+  const debouncedValidate = debounce(() => {
+    if (!isValidatable.value) {
       return;
     }
 
-    field.value?.reset?.();
+    void validate();
+  }, 300);
 
-    clearValidateErrors();
+  function clearValidateErrors () {
+    debouncedValidate.cancel();
+    clearFieldValidateErrors();
   }
 
   /**
@@ -138,14 +148,6 @@ export function useFormItem (options: UseFormItemOptions) {
     reset,
     clearValidateErrors
   };
-
-  const debouncedValidate = debounce(() => {
-    if (!isValidatable.value) {
-      return;
-    }
-
-    void validate();
-  }, 300);
 
   /** Тихий parse — обновить isFieldValid без показа ошибок (для isValid кнопки). */
   function validateSilent () {

@@ -66,13 +66,8 @@ export function useInputNumberRoot (options: UseInputNumberRootOptions) {
     options.onUpdateModelValue?.(value);
   }
 
-  function reset () {
-    setModelValue(0);
-  }
-
   onMounted(() => {
     options.formItemContext?.registerField({
-      reset,
       isDisabled: () => Boolean(props.value.disabled)
     });
   });

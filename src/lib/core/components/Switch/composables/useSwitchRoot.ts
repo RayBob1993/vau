@@ -24,13 +24,8 @@ export function useSwitchRoot (options: UseSwitchRootOptions) {
     );
   });
 
-  function reset () {
-    options.onUpdateModelValue?.(false);
-  }
-
   onMounted(() => {
     options.formItemContext?.registerField({
-      reset,
       isDisabled: () => Boolean(props.value?.disabled)
     });
   });

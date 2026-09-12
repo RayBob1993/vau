@@ -21,7 +21,11 @@
     validate,
     clearValidate,
     reset
-  } = useFormRoot({
+  } = useFormRoot<MODEL>({
+    modelValue: () => modelValue.value,
+    onUpdateModelValue: value => {
+      modelValue.value = value;
+    },
     scrollToError: () => props.scrollToError,
     onValid: () => {
       emit('valid');

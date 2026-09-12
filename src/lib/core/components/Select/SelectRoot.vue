@@ -37,10 +37,7 @@
     },
     onChange: value => {
       emit('change', value);
-    },
-    onClear: () => {
-      emit('clear');
-    },
+    }
   });
 
   provide(SelectRootContextKey, {

@@ -35,13 +35,13 @@ export function useInputRoot (options: UseInputRootOptions) {
     options.onUpdateModelValue?.(value);
   }
 
-  function reset () {
+  /** Очистка значения (clearable), не form-reset. */
+  function clear () {
     setModelValue('');
   }
 
   onMounted(() => {
     options.formItemContext?.registerField({
-      reset,
       isDisabled: () => Boolean(props.value?.disabled)
     });
   });
@@ -57,6 +57,6 @@ export function useInputRoot (options: UseInputRootOptions) {
     hasValue,
     setFocus,
     setModelValue,
-    reset
+    clear
   };
 }

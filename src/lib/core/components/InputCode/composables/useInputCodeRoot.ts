@@ -22,13 +22,8 @@ export function useInputCodeRoot (options: UseInputCodeRootOptions) {
     );
   });
 
-  function reset () {
-    options.onUpdateModelValue?.('');
-  }
-
   onMounted(() => {
     options.formItemContext?.registerField({
-      reset,
       isDisabled: () => Boolean(props.value?.disabled)
     });
   });
