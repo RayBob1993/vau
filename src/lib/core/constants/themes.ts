@@ -1,4 +1,6 @@
-export const Themes = Object.freeze({
+import { defineEnum } from '../utils';
+
+export const Themes = defineEnum({
   BASE: 'base',
   PRIMARY: 'primary',
   SECONDARY: 'secondary',
@@ -6,4 +8,4 @@ export const Themes = Object.freeze({
   DANGER: 'danger',
   SUCCESS: 'success',
   WARNING: 'warning'
-} as const);
+});

@@ -1,4 +1,6 @@
-export const IntersectionPresets = Object.freeze({
+import { defineEnum } from '../utils';
+
+export const IntersectionPresets = defineEnum({
   LAZY_IMAGE: {
     threshold: 0,
     rootMargin: '50px 0px 50px 0px'

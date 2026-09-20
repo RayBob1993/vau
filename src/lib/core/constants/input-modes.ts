@@ -1,4 +1,6 @@
-export const InputModes = Object.freeze({
+import { defineEnum } from '../utils';
+
+export const InputModes = defineEnum({
   NUMERIC: 'numeric',
   TEL: 'tel',
   TEXT: 'text',
@@ -6,5 +8,5 @@ export const InputModes = Object.freeze({
   SEARCH: 'search',
   EMAIL: 'email',
   NONE: 'none',
-  URL: 'url' ,
-} as const);
+  URL: 'url'
+});

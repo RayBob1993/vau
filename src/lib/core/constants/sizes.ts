@@ -1,4 +1,6 @@
-export const Sizes = Object.freeze({
+import { defineEnum } from '../utils';
+
+export const Sizes = defineEnum({
   MINI: 'mini',
   SMALL: 'small',
   MEDIUM: 'medium',
@@ -6,4 +8,4 @@ export const Sizes = Object.freeze({
   BIG: 'big',
   HUGE: 'huge',
   MASSIVE: 'massive'
-} as const);
+});

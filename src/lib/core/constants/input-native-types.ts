@@ -1,4 +1,6 @@
-export const InputNativeTypes = Object.freeze({
+import { defineEnum } from '../utils';
+
+export const InputNativeTypes = defineEnum({
   TEXT: 'text',
   EMAIL: 'email',
   NUMBER: 'number',
@@ -6,4 +8,4 @@ export const InputNativeTypes = Object.freeze({
   URL: 'url',
   SEARCH: 'search',
   PASSWORD: 'password'
-} as const);
+});

@@ -1,4 +1,6 @@
-export const FlexJustify = Object.freeze({
+import { defineEnum } from '../utils';
+
+export const FlexJustify = defineEnum({
   START: 'start',
   CENTER: 'center',
   END: 'end',
@@ -6,4 +8,4 @@ export const FlexJustify = Object.freeze({
   STRETCH: 'stretch',
   BETWEEN: 'between',
   AROUND: 'around'
-} as const);
+});

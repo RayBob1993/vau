@@ -1,4 +1,6 @@
-export const Direction = Object.freeze({
+import { defineEnum } from '../utils';
+
+export const Direction = defineEnum({
   HORIZONTAL: 'horizontal',
   VERTICAL: 'vertical'
-} as const);
+});
