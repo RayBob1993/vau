@@ -1,6 +1,6 @@
-import { describe, expect, it, vi } from 'vitest';
 import { takeLatest } from '../takeLatest';
 import { delay } from '../../delay';
+import { describe, expect, it, vi } from 'vitest';
 
 describe('takeLatest', () => {
   it('isLatest=true только у последнего вызова', async () => {
