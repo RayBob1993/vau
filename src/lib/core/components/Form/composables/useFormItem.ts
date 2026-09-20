@@ -166,6 +166,7 @@ export function useFormItem (options: UseFormItemOptions) {
 
   onMounted(() => {
     options.formRootContext?.registerFormItem(instance);
+
     validateSilent();
   });
 
@@ -192,6 +193,24 @@ export function useFormItem (options: UseFormItemOptions) {
     if (!validatable) {
       clearValidateErrors();
     }
+  });
+
+  /**
+   * Смена Zod-схемы (например rules в computed): пересчитать isFieldValid.
+   * Если ошибки уже показаны — обновить UI; иначе только silent для кнопки.
+   */
+  watch(rule, (newRule, oldRule) => {
+    if (newRule === oldRule || !isValidatable.value) {
+      return;
+    }
+
+    if (validationStatus.value.isError) {
+      void validate();
+
+      return;
+    }
+
+    validateSilent();
   });
 
   return {
