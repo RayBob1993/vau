@@ -19,7 +19,7 @@
     v-on="emit"
   >
     <template
-      v-if="slots.header"
+      v-if="title || slots.header"
       #header="headerScope"
     >
       <slot
