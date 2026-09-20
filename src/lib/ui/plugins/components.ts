@@ -21,6 +21,7 @@ import {
   //TabsPlugin,
   TagPlugin,
   TextPlugin,
+  SectionPlugin,
   ContainerPlugin,
   ColPlugin,
   RowPlugin,
@@ -82,6 +83,7 @@ export const Vau: Plugin = {
     //app.use(TabsPlugin);
     app.use(TagPlugin);
     app.use(TextPlugin);
+    app.use(SectionPlugin);
     app.use(ContainerPlugin);
     app.use(ColPlugin);
     app.use(RowPlugin);
