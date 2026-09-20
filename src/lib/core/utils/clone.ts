@@ -1,5 +1,6 @@
 import { isObject } from './isObject';
 import { isFunction } from './isFunction';
+import { isNull } from './isNull';
 
 /**
  * @description `clone` - Клонирует переданное значение, создавая его глубокую копию.
@@ -38,7 +39,7 @@ import { isFunction } from './isFunction';
 
 export function clone <T> (value: T, hash = new WeakMap<object, unknown>): T {
   // Обрабатываем примитивы (включая Symbol)
-  if (value === null || typeof value !== 'object') {
+  if (isNull(value) || !isObject(value)) {
     return value;
   }
 

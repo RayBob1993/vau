@@ -1,3 +1,4 @@
+import { isUndefined } from '../utils';
 import { type MaybeRefOrGetter, onUnmounted, toValue, watch } from 'vue';
 
 export interface UseEscapeKeyOptions {
@@ -33,7 +34,7 @@ export function useEscapeKey (options: UseEscapeKeyOptions) {
       return;
     }
 
-    if (options.enabled !== undefined && !toValue(options.enabled)) {
+    if (!isUndefined(options.enabled) && !toValue(options.enabled)) {
       return;
     }
 
