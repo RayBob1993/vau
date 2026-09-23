@@ -22,6 +22,7 @@
     isDirty,
     isPristine,
     isChanged,
+    isValidating,
     registerField,
     unregisterField,
     reset,
@@ -67,6 +68,7 @@
     isDirty,
     isPristine,
     isChanged,
+    isValidating,
     reset,
     validate,
     clearValidateErrors

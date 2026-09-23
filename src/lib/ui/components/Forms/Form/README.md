@@ -237,13 +237,14 @@ const rules = computed(() =>
 
 Для смонтированных `FormItem` с `name`:
 
-| Флаг         | Поле                                                         | Форма                                                       |
-|--------------|--------------------------------------------------------------|-------------------------------------------------------------|
-| `isDirty`    | Значение менялось хотя бы раз (липкий до `reset` формы)      | Хотя бы одно поле dirty                                     |
-| `isPristine` | Значение никогда не меняли (`!isDirty`)                      | Все поля pristine                                           |
-| `isChanged`  | Текущее значение ≠ снимок `initial` на mount                 | Хотя бы одно поле changed                                   |
-| `isValid`    | Логический результат parse (для невалидируемых — `true`)     | Агрегат валидируемых полей; до готовности реестра — `false` |
-| `canSubmit`  | —                                                            | `isValid && isChanged` — для `:disabled="!canSubmit"`        |
+| Флаг           | Поле                                                     | Форма                                                       |
+|----------------|----------------------------------------------------------|-------------------------------------------------------------|
+| `isDirty`      | Значение менялось хотя бы раз (липкий до `reset` формы)  | Хотя бы одно поле dirty                                     |
+| `isPristine`   | Значение никогда не меняли (`!isDirty`)                  | Все поля pristine                                           |
+| `isChanged`    | Текущее значение ≠ снимок `initial` на mount             | Хотя бы одно поле changed                                   |
+| `isValid`      | Логический результат parse (для невалидируемых — `true`) | Агрегат валидируемых полей; до готовности реестра — `false` |
+| `isValidating` | `validationStatus.isValidating`                          | Хотя бы одно поле в процессе validate                       |
+| `canSubmit`    | —                                                        | `isValid && isChanged && !isValidating`                     |
 
 `Form.reset()` возвращает model к снимку mount и сбрасывает `isDirty` у полей.
 
@@ -253,9 +254,10 @@ const rules = computed(() =>
 
 Типичный сценарий редактирования:
 
-- **Сохранить** — `canSubmit` (`isValid && isChanged`);
+- **Сохранить** — `canSubmit` (`isValid && isChanged && !isValidating`);
 - **Сбросить** — поле хотя бы раз трогали (`isDirty`);
-- подсказка «есть несохранённые изменения» — по `isChanged` (вернули значение к initial → подсказка пропадает; `isDirty` остаётся `true` до `reset`).
+- подсказка «есть несохранённые изменения» — по `isChanged` (вернули значение к initial → подсказка пропадает; `isDirty` остаётся `true` до `reset`);
+- спиннер на кнопке — по `isValidating` формы (или `:loading="isValidating"`).
 
 ```vue
 <script lang="ts" setup>
@@ -309,7 +311,7 @@ const rules = computed(() =>
 <template>
   <v-form
     ref="formRef"
-    v-slot="{ canSubmit, isDirty, isChanged }"
+    v-slot="{ canSubmit, isDirty, isChanged, isValidating }"
     v-model="model"
     :rules="rules"
     @submit="handleSubmit"
@@ -345,6 +347,7 @@ const rules = computed(() =>
     <v-button
       type="submit"
       :disabled="!canSubmit"
+      :loading="isValidating"
     >
       Сохранить
     </v-button>
@@ -510,9 +513,9 @@ const rules = computed(() =>
 
 #### Слоты
 
-| Имя       | Описание         | Scope свойства                                           |
-|-----------|------------------|----------------------------------------------------------|
-| `default` | Содержимое формы | `{ isValid, isDirty, isPristine, isChanged, canSubmit }` |
+| Имя       | Описание         | Scope свойства                                                         |
+|-----------|------------------|------------------------------------------------------------------------|
+| `default` | Содержимое формы | `{ isValid, isDirty, isPristine, isChanged, isValidating, canSubmit }` |
 
 #### События
 
@@ -530,7 +533,8 @@ const rules = computed(() =>
 | `isDirty`       | Хотя бы одно поле с `name` менялось                                             | —                  | `boolean`             |
 | `isPristine`    | Ни одно поле с `name` не менялось                                               | —                  | `boolean`             |
 | `isChanged`     | Хотя бы одно поле отличается от initial                                         | —                  | `boolean`             |
-| `canSubmit`     | `isValid && isChanged` — удобно для кнопки «Сохранить»                          | —                  | `boolean`             |
+| `isValidating`  | Хотя бы одно поле в процессе validate                                           | —                  | `boolean`             |
+| `canSubmit`     | `isValid && isChanged && !isValidating` — удобно для кнопки «Сохранить»         | —                  | `boolean`             |
 | `validate`      | Валидировать все валидируемые FormItem. `silent: true` — без показа ошибок в UI | `silent?: boolean` | `Promise<boolean>`    |
 | `clearValidate` | Сбросить статусы и сообщения ошибок у всех полей                                | —                  | —                     |
 | `reset`         | Восстановить model к снимку mount, очистить валидацию и meta (`isDirty`)        | —                  | —                     |
@@ -572,6 +576,7 @@ Scope у всех слотов: `{ validationStatus, isRequired, errors, isValid
 | `isDirty`             | Значение поля менялось хотя бы раз                                        | —                  | `boolean`             |
 | `isPristine`          | Значение поля никогда не меняли                                           | —                  | `boolean`             |
 | `isChanged`           | Текущее значение ≠ initial                                                | —                  | `boolean`             |
+| `isValidating`        | Поле в процессе validate                                                  | —                  | `boolean`             |
 | `validate`            | Валидировать поле. `silent: true` — без показа ошибок в UI                | `silent?: boolean` | `Promise<boolean>`    |
 | `clearValidateErrors` | Сбросить статус и сообщения ошибок поля                                   | —                  | —                     |
 | `reset`               | Сбросить UI-статус валидации поля (model сбрасывает только `VForm.reset`) | —                  | —                     |

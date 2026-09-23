@@ -36,5 +36,6 @@ describe('FormItem', () => {
     expect(itemRef.value?.isDirty).toBeTypeOf('boolean');
     expect(itemRef.value?.isPristine).toBeTypeOf('boolean');
     expect(itemRef.value?.isChanged).toBeTypeOf('boolean');
+    expect(itemRef.value?.isValidating).toBeTypeOf('boolean');
   });
 });

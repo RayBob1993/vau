@@ -127,6 +127,8 @@ export function useFormItem (options: UseFormItemOptions) {
     return !isEqual(value.value, initialValue.value);
   });
 
+  const isValidating = computed<boolean>(() => validationStatus.value.isValidating);
+
   const isValid = computed<boolean>(() => {
     if (!isValidatable.value) {
       return true;
@@ -198,6 +200,9 @@ export function useFormItem (options: UseFormItemOptions) {
     },
     get isChanged () {
       return isChanged.value;
+    },
+    get isValidating () {
+      return validationStatus.value.isValidating;
     },
     get el () {
       return toValue(options.el) ?? null;
@@ -277,6 +282,7 @@ export function useFormItem (options: UseFormItemOptions) {
     isDirty,
     isPristine,
     isChanged,
+    isValidating,
     validationErrors,
     validationStatus,
     isDisabled,

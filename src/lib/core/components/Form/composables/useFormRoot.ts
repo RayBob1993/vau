@@ -71,8 +71,11 @@ export function useFormRoot <MODEL extends FormModel> (options: UseFormRootOptio
 
   const isChanged = computed<boolean>(() => namedFormItems.value.some(item => item.isChanged));
 
-  /** Валидна и отличается от initial — типичное условие для кнопки «Сохранить». */
-  const canSubmit = computed<boolean>(() => isValid.value && isChanged.value);
+  /** Хотя бы одно поле в процессе validate. */
+  const isValidating = computed<boolean>(() => formItems.value.some(item => item.isValidating));
+
+  /** Валидна, отличается от initial и не в процессе validate. */
+  const canSubmit = computed<boolean>(() => isValid.value && isChanged.value && !isValidating.value);
 
   function captureInitialModel () {
     if (initialModel.value) {
@@ -151,6 +154,7 @@ export function useFormRoot <MODEL extends FormModel> (options: UseFormRootOptio
     isDirty,
     isPristine,
     isChanged,
+    isValidating,
     canSubmit,
     validate,
     clearValidate,

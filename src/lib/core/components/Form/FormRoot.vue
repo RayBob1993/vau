@@ -20,6 +20,7 @@
     isDirty,
     isPristine,
     isChanged,
+    isValidating,
     canSubmit,
     registerFormItem,
     unregisterFormItem,
@@ -55,6 +56,7 @@
     isDirty: isDirty.value,
     isPristine: isPristine.value,
     isChanged: isChanged.value,
+    isValidating: isValidating.value,
     canSubmit: canSubmit.value
   }));
 
@@ -71,6 +73,7 @@
     isDirty,
     isPristine,
     isChanged,
+    isValidating,
     canSubmit,
     validate,
     clearValidate,
@@ -85,6 +88,7 @@
       'form--disabled': disabled,
       'form--dirty': isDirty,
       'form--changed': isChanged,
+      'form--validating': isValidating,
       'form--invalid': showAsInvalid
     }"
     @submit.prevent="handleSubmit"

@@ -44,10 +44,7 @@ export interface FormValidityFlags {
 }
 
 export type FormScopedSlot = FormValidityFlags & FormMetaFlags & {
-  /**
-   * Можно сохранить/отправить: форма валидна и отличается от initial.
-   * Удобно для `:disabled="!canSubmit"`.
-   */
+  isValidating: boolean;
   canSubmit: boolean;
 };
 
@@ -67,6 +64,7 @@ export interface FormInstance {
   isDirty: boolean;
   isPristine: boolean;
   isChanged: boolean;
+  isValidating: boolean;
   canSubmit: boolean;
   validate: (silent?: boolean) => FormValidationResult;
   clearValidate: VoidFunction;
@@ -78,6 +76,7 @@ export interface FormExpose {
   isDirty: ComputedRef<boolean>;
   isPristine: ComputedRef<boolean>;
   isChanged: ComputedRef<boolean>;
+  isValidating: ComputedRef<boolean>;
   canSubmit: ComputedRef<boolean>;
   validate: (silent?: boolean) => FormValidationResult;
   clearValidate: VoidFunction;
@@ -143,6 +142,8 @@ export interface FormItemInstance {
   readonly isDirty: boolean;
   readonly isPristine: boolean;
   readonly isChanged: boolean;
+  /** Поле сейчас в процессе validate (`validationStatus.isValidating`). */
+  readonly isValidating: boolean;
   readonly props: FormItemProps;
   readonly el: HTMLElement | null;
   validate: (silent?: boolean) => FormValidationResult;
@@ -166,6 +167,7 @@ export interface FormItemExpose {
   isDirty: Ref<boolean>;
   isPristine: ComputedRef<boolean>;
   isChanged: ComputedRef<boolean>;
+  isValidating: ComputedRef<boolean>;
   validate: (silent?: boolean) => FormValidationResult;
   clearValidateErrors: VoidFunction;
   reset: VoidFunction;

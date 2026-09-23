@@ -27,6 +27,7 @@
     isDirty: computed(() => rootRef.value?.isDirty ?? false),
     isPristine: computed(() => rootRef.value?.isPristine ?? true),
     isChanged: computed(() => rootRef.value?.isChanged ?? false),
+    isValidating: computed(() => rootRef.value?.isValidating ?? false),
     canSubmit: computed(() => rootRef.value?.canSubmit ?? false),
     validate: (silent?: boolean) => rootRef.value!.validate(silent),
     clearValidate: () => rootRef.value!.clearValidate(),

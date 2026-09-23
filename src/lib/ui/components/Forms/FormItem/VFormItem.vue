@@ -22,6 +22,7 @@
     isDirty: computed(() => itemRef.value?.isDirty ?? false),
     isPristine: computed(() => itemRef.value?.isPristine ?? true),
     isChanged: computed(() => itemRef.value?.isChanged ?? false),
+    isValidating: computed(() => itemRef.value?.isValidating ?? false),
     validate: (silent?: boolean) => itemRef.value!.validate(silent),
     clearValidateErrors: () => itemRef.value!.clearValidateErrors(),
     reset: () => itemRef.value!.reset()

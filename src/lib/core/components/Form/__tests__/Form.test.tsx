@@ -50,6 +50,7 @@ describe('Form', () => {
     expect(formRef.value?.isDirty).toBeTypeOf('boolean');
     expect(formRef.value?.isPristine).toBeTypeOf('boolean');
     expect(formRef.value?.isChanged).toBeTypeOf('boolean');
+    expect(formRef.value?.isValidating).toBeTypeOf('boolean');
     expect(formRef.value?.canSubmit).toBeTypeOf('boolean');
   });
 });
