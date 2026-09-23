@@ -1,5 +1,5 @@
 import type { ZodError, ZodType } from 'zod';
-import type { ComputedRef, DeepReadonly, MaybeRefOrGetter, ModelRef, Ref, ShallowRef, VNode } from 'vue';
+import type { ComputedRef, DeepReadonly, MaybeRefOrGetter, ModelRef, Ref, ShallowRef, TemplateRef, VNode } from 'vue';
 
 export type FormModelValues = unknown;
 
@@ -142,8 +142,7 @@ export interface FormItemInstance {
   readonly isDirty: boolean;
   readonly isPristine: boolean;
   readonly isChanged: boolean;
-  /** Поле сейчас в процессе validate (`validationStatus.isValidating`). */
-  readonly isValidating: boolean;
+  readonly validationStatus: FormItemValidationStatus;
   readonly props: FormItemProps;
   readonly el: HTMLElement | null;
   validate: (silent?: boolean) => FormValidationResult;
@@ -163,12 +162,17 @@ export interface FormRootContext {
 }
 
 export interface FormItemExpose {
+  isValidatable: ComputedRef<boolean>;
+  isFieldValid: Ref<boolean>;
   isValid: ComputedRef<boolean>;
+  isRequired: ComputedRef<boolean>;
   isDirty: Ref<boolean>;
   isPristine: ComputedRef<boolean>;
   isChanged: ComputedRef<boolean>;
-  isValidating: ComputedRef<boolean>;
+  validationStatus: Ref<FormItemValidationStatus>;
+  el: TemplateRef<HTMLElement>;
   validate: (silent?: boolean) => FormValidationResult;
   clearValidateErrors: VoidFunction;
   reset: VoidFunction;
+  resetMeta: VoidFunction;
 }

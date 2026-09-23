@@ -72,7 +72,7 @@ export function useFormRoot <MODEL extends FormModel> (options: UseFormRootOptio
   const isChanged = computed<boolean>(() => namedFormItems.value.some(item => item.isChanged));
 
   /** Хотя бы одно поле в процессе validate. */
-  const isValidating = computed<boolean>(() => formItems.value.some(item => item.isValidating));
+  const isValidating = computed<boolean>(() => formItems.value.some(item => item.validationStatus.isValidating));
 
   /** Валидна, отличается от initial и не в процессе validate. */
   const canSubmit = computed<boolean>(() => isValid.value && isChanged.value && !isValidating.value);

@@ -18,14 +18,23 @@
   const itemRef = useTemplateRef<FormItemInstance>('itemRef');
 
   defineExpose<FormItemExpose>({
+    el: computed(() => itemRef.value?.el ?? null),
+    isValidatable: computed(() => itemRef.value?.isValidatable ?? false),
+    isFieldValid: computed(() => itemRef.value?.isFieldValid ?? false),
+    isRequired: computed(() => itemRef.value?.isRequired ?? false),
     isValid: computed(() => itemRef.value?.isValid ?? true),
     isDirty: computed(() => itemRef.value?.isDirty ?? false),
     isPristine: computed(() => itemRef.value?.isPristine ?? true),
     isChanged: computed(() => itemRef.value?.isChanged ?? false),
-    isValidating: computed(() => itemRef.value?.isValidating ?? false),
+    validationStatus: computed(() => itemRef.value?.validationStatus ?? {
+      isError: false,
+      isValidating: false,
+      isSuccess: false
+    }),
     validate: (silent?: boolean) => itemRef.value!.validate(silent),
     clearValidateErrors: () => itemRef.value!.clearValidateErrors(),
-    reset: () => itemRef.value!.reset()
+    reset: () => itemRef.value!.reset(),
+    resetMeta: () => itemRef.value?.resetMeta()
   });
 </script>
 

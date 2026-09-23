@@ -18,14 +18,16 @@
     validationStatus,
     isDisabled,
     isRequired,
+    isValidatable,
+    isFieldValid,
     isValid,
     isDirty,
     isPristine,
     isChanged,
-    isValidating,
     registerField,
     unregisterField,
     reset,
+    resetMeta,
     validate,
     clearValidateErrors
   } = useFormItem({
@@ -64,12 +66,17 @@
   });
 
   defineExpose<FormItemExpose>({
+    el: rootEl,
+    isValidatable,
+    isFieldValid,
+    isRequired,
     isValid,
     isDirty,
     isPristine,
     isChanged,
-    isValidating,
+    validationStatus,
     reset,
+    resetMeta,
     validate,
     clearValidateErrors
   });
