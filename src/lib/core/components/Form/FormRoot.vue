@@ -2,7 +2,7 @@
   import type { FormEmits, FormExpose, FormModel, FormProps, FormSlots } from './types';
   import { useFormRoot } from './composables';
   import { FormRootContextKey } from './context';
-  import { provide } from 'vue';
+  import { computed, provide } from 'vue';
 
   const props = defineProps<FormProps<MODEL>>();
 
@@ -16,8 +16,14 @@
 
   const {
     isValid,
+    showAsInvalid,
+    isDirty,
+    isPristine,
+    isChanged,
+    canSubmit,
     registerFormItem,
     unregisterFormItem,
+    initialModel,
     validate,
     clearValidate,
     reset
@@ -36,23 +42,36 @@
   });
 
   async function handleSubmit () {
-    const isValid = await validate();
+    const isValidResult = await validate();
 
     emit('submit', {
-      isValid,
+      isValid: isValidResult,
       reset
     });
   }
 
+  const scopedSlot = computed(() => ({
+    isValid: isValid.value,
+    isDirty: isDirty.value,
+    isPristine: isPristine.value,
+    isChanged: isChanged.value,
+    canSubmit: canSubmit.value
+  }));
+
   provide(FormRootContextKey, {
     props,
     modelValue,
+    initialModel,
     registerFormItem,
     unregisterFormItem
   });
 
   defineExpose<FormExpose>({
     isValid,
+    isDirty,
+    isPristine,
+    isChanged,
+    canSubmit,
     validate,
     clearValidate,
     reset
@@ -63,10 +82,13 @@
   <form
     class="form"
     :class="{
-      'form--disabled': disabled
+      'form--disabled': disabled,
+      'form--dirty': isDirty,
+      'form--changed': isChanged,
+      'form--invalid': showAsInvalid
     }"
     @submit.prevent="handleSubmit"
   >
-    <slot :is-valid="isValid"/>
+    <slot v-bind="scopedSlot"/>
   </form>
 </template>

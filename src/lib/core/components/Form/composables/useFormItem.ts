@@ -2,7 +2,8 @@ import type { Maybe, MaybeNull } from '../../../types';
 import type { FormRootContext, FormItemProps, FormModelValues, FormItemInstance, FormModel, FormRules } from '../types';
 import { useFormField } from './useFormField';
 import { useFormItemValidation } from './useFormItemValidation';
-import { debounce } from '../../../utils';
+import { useToggle } from '../../../composables';
+import { debounce, isEqual } from '../../../utils';
 import { z, type ZodType } from 'zod';
 import { computed, type MaybeRefOrGetter, onMounted, onUnmounted, toValue, useId, watch } from 'vue';
 
@@ -19,6 +20,8 @@ export function useFormItem (options: UseFormItemOptions) {
 
   const { field, registerField, unregisterField } = useFormField();
 
+  const [isDirty, setIsDirty] = useToggle(false);
+
   const props = computed<FormItemProps>(() => toValue(options.props));
 
   const name = computed<Maybe<string>>(() => props.value.name);
@@ -33,6 +36,20 @@ export function useFormItem (options: UseFormItemOptions) {
     }
 
     return modelValue.value[name.value];
+  });
+
+  const initialValue = computed<FormModelValues>(() => {
+    if (!name.value) {
+      return undefined;
+    }
+
+    const initial = options.formRootContext?.initialModel.value;
+
+    if (!initial) {
+      return undefined;
+    }
+
+    return initial[name.value];
   });
 
   /**
@@ -54,16 +71,6 @@ export function useFormItem (options: UseFormItemOptions) {
     const ruleValue = rules.value[name.value];
 
     return ruleValue instanceof z.ZodType ? ruleValue : null;
-  });
-
-  const isValidatable = computed<boolean>(() => Boolean(rule.value) && !isDisabled.value);
-
-  const isRequired = computed<boolean>(() => {
-    if (!rule.value || isDisabled.value) {
-      return false;
-    }
-
-    return !rule.value.safeParse(undefined).success;
   });
 
   const {
@@ -99,6 +106,35 @@ export function useFormItem (options: UseFormItemOptions) {
     }
   });
 
+  const isValidatable = computed<boolean>(() => Boolean(rule.value) && !isDisabled.value);
+
+  const isRequired = computed<boolean>(() => {
+    if (!rule.value || isDisabled.value) {
+      return false;
+    }
+
+    return !rule.value.safeParse(undefined).success;
+  });
+
+
+  const isPristine = computed<boolean>(() => !isDirty.value);
+
+  const isChanged = computed<boolean>(() => {
+    if (!name.value) {
+      return false;
+    }
+
+    return !isEqual(value.value, initialValue.value);
+  });
+
+  const isValid = computed<boolean>(() => {
+    if (!isValidatable.value) {
+      return true;
+    }
+
+    return isFieldValid.value;
+  });
+
   /**
    * Disabled-поле не участвует в валидации и не блокирует форму.
    */
@@ -115,6 +151,10 @@ export function useFormItem (options: UseFormItemOptions) {
    */
   function reset () {
     clearValidateErrors();
+  }
+
+  function resetMeta () {
+    setIsDirty(false);
   }
 
   const debouncedValidate = debounce(() => {
@@ -144,14 +184,27 @@ export function useFormItem (options: UseFormItemOptions) {
     get isFieldValid () {
       return isFieldValid.value;
     },
+    get isValid () {
+      return isValid.value;
+    },
     get isRequired () {
       return isRequired.value;
+    },
+    get isDirty () {
+      return isDirty.value;
+    },
+    get isPristine () {
+      return isPristine.value;
+    },
+    get isChanged () {
+      return isChanged.value;
     },
     get el () {
       return toValue(options.el) ?? null;
     },
     validate,
     reset,
+    resetMeta,
     clearValidateErrors
   };
 
@@ -176,6 +229,10 @@ export function useFormItem (options: UseFormItemOptions) {
   });
 
   watch(value, () => {
+    if (name.value) {
+      setIsDirty(true);
+    }
+
     if (!isValidatable.value) {
       return;
     }
@@ -216,11 +273,16 @@ export function useFormItem (options: UseFormItemOptions) {
   return {
     id,
     isFieldValid,
+    isValid,
+    isDirty,
+    isPristine,
+    isChanged,
     validationErrors,
     validationStatus,
     isDisabled,
     isRequired,
     reset,
+    resetMeta,
     validate,
     clearValidateErrors,
     registerField,

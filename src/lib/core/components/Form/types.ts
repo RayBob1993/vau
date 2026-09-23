@@ -1,5 +1,5 @@
 import type { ZodError, ZodType } from 'zod';
-import type { ComputedRef, MaybeRefOrGetter, ModelRef, Ref, VNode } from 'vue';
+import type { ComputedRef, DeepReadonly, MaybeRefOrGetter, ModelRef, Ref, ShallowRef, VNode } from 'vue';
 
 export type FormModelValues = unknown;
 
@@ -29,10 +29,30 @@ export interface FormEmits extends FormItemEmits {
   submit: [payload: FormSubmitEvent];
 }
 
+/** Метаданные «касаемости» и отличия от initial (поле или форма). */
+export interface FormMetaFlags {
+  /** Значение менялось хотя бы раз (липкий флаг до reset формы). */
+  isDirty: boolean;
+  /** Значение никогда не меняли. */
+  isPristine: boolean;
+  /** Текущее значение отличается от снимка initial. */
+  isChanged: boolean;
+}
+
+export interface FormValidityFlags {
+  isValid: boolean;
+}
+
+export type FormScopedSlot = FormValidityFlags & FormMetaFlags & {
+  /**
+   * Можно сохранить/отправить: форма валидна и отличается от initial.
+   * Удобно для `:disabled="!canSubmit"`.
+   */
+  canSubmit: boolean;
+};
+
 export interface FormSlots {
-  default?: (props: {
-    isValid: boolean;
-  }) => Array<VNode>;
+  default?: (props: FormScopedSlot) => Array<VNode>;
 }
 
 export type FormValidationResult = Promise<boolean>;
@@ -43,7 +63,22 @@ export type FormValidationResult = Promise<boolean>;
 export type FormRootValidationResult = Promise<boolean | undefined>;
 
 export interface FormInstance {
+  isValid: boolean;
+  isDirty: boolean;
+  isPristine: boolean;
+  isChanged: boolean;
+  canSubmit: boolean;
+  validate: (silent?: boolean) => FormValidationResult;
+  clearValidate: VoidFunction;
+  reset: VoidFunction;
+}
+
+export interface FormExpose {
   isValid: ComputedRef<boolean>;
+  isDirty: ComputedRef<boolean>;
+  isPristine: ComputedRef<boolean>;
+  isChanged: ComputedRef<boolean>;
+  canSubmit: ComputedRef<boolean>;
   validate: (silent?: boolean) => FormValidationResult;
   clearValidate: VoidFunction;
   reset: VoidFunction;
@@ -60,7 +95,7 @@ export interface FormItemProps {
   name?: string;
 }
 
-export interface FormItemScopedSlot {
+export interface FormItemScopedSlot extends FormValidityFlags, FormMetaFlags {
   validationStatus: FormItemValidationStatus;
   isRequired: boolean;
   errors: Array<FormItemError>;
@@ -95,11 +130,6 @@ export interface FormItemValidationStatus {
   isSuccess: boolean;
 }
 
-/**
- * Зарегистрированный FormItem в реестре формы.
- * Логический результат поля — `isFieldValid` (для агрегации `isValid` формы).
- * `validationStatus` — только UI (ошибки / успех / pending).
- */
 export interface FormItemInstance {
   id: string;
   readonly isValidatable: boolean;
@@ -108,21 +138,35 @@ export interface FormItemInstance {
    * Не зависит от показа ошибок в UI.
    */
   readonly isFieldValid: boolean;
+  readonly isValid: boolean;
   readonly isRequired: boolean;
+  readonly isDirty: boolean;
+  readonly isPristine: boolean;
+  readonly isChanged: boolean;
   readonly props: FormItemProps;
   readonly el: HTMLElement | null;
   validate: (silent?: boolean) => FormValidationResult;
   clearValidateErrors: VoidFunction;
   reset: VoidFunction;
+  /** Сброс isDirty (после Form.reset). */
+  resetMeta: VoidFunction;
 }
 
 export interface FormRootContext {
   props: FormProps<FormModel>;
   modelValue: ModelRef<FormModel>;
+  /** Снимок model для reset и isChanged. */
+  initialModel: DeepReadonly<ShallowRef<FormModel | undefined>>;
   registerFormItem: (formItem: FormItemInstance) => void;
   unregisterFormItem: (id: string) => void;
 }
 
-export type FormItemExpose = Pick<FormItemInstance, 'validate' | 'clearValidateErrors' | 'reset'>;
-
-export type FormExpose = FormInstance;
+export interface FormItemExpose {
+  isValid: ComputedRef<boolean>;
+  isDirty: Ref<boolean>;
+  isPristine: ComputedRef<boolean>;
+  isChanged: ComputedRef<boolean>;
+  validate: (silent?: boolean) => FormValidationResult;
+  clearValidateErrors: VoidFunction;
+  reset: VoidFunction;
+}

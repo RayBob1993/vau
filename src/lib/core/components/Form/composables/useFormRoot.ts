@@ -1,4 +1,4 @@
-import type { FormModel } from '../types';
+import type { FormItemInstance, FormModel } from '../types';
 import type { Maybe } from '../../../types';
 import { useFormItems } from './useFormItems';
 import { useFormValidation } from './useFormValidation';
@@ -33,23 +33,17 @@ export function useFormRoot <MODEL extends FormModel> (options: UseFormRootOptio
   });
 
   /**
-   * Снимок model на момент готовности формы — эталон для reset().
+   * Снимок model на момент готовности формы — эталон для reset() и isChanged.
    */
   const initialModel = shallowRef<MODEL>();
-
-  function captureInitialModel () {
-    if (initialModel.value) {
-      return;
-    }
-
-    initialModel.value = clone(toValue(options.modelValue));
-  }
 
   /**
    * После mount + nextTick дети успевают зарегистрироваться.
    * До этого isValid = false, чтобы кнопка не мигала enabled.
    */
   const [isRegistryReady, setIsRegistryReady] = useToggle();
+
+  const namedFormItems = computed<Array<FormItemInstance>>(() => formItems.value.filter(item => Boolean(item.props.name)));
 
   const isValid = computed<boolean>(() => {
     if (!isRegistryReady.value) {
@@ -66,11 +60,39 @@ export function useFormRoot <MODEL extends FormModel> (options: UseFormRootOptio
   });
 
   /**
-   * Восстанавливает model из снимка на mount и сбрасывает статусы валидации.
+   * Класс form--invalid: не зеркало !isValid до готовности реестра
+   * (иначе вспышка «ошибки» при mount, когда isValid ещё false).
+   */
+  const showAsInvalid = computed<boolean>(() => isRegistryReady.value && !isValid.value);
+
+  const isDirty = computed<boolean>(() => namedFormItems.value.some(item => item.isDirty));
+
+  const isPristine = computed<boolean>(() => namedFormItems.value.every(item => item.isPristine));
+
+  const isChanged = computed<boolean>(() => namedFormItems.value.some(item => item.isChanged));
+
+  /** Валидна и отличается от initial — типичное условие для кнопки «Сохранить». */
+  const canSubmit = computed<boolean>(() => isValid.value && isChanged.value);
+
+  function captureInitialModel () {
+    if (initialModel.value) {
+      return;
+    }
+
+    initialModel.value = clone(toValue(options.modelValue));
+  }
+
+  function resetMeta () {
+    formItems.value.forEach(item => {
+      item.resetMeta();
+    });
+  }
+
+  /**
+   * Восстанавливает model из снимка на mount и сбрасывает статусы валидации / meta.
    *
-   * После смены model `watch(value)` у FormItem ставит debounce validate —
-   * поэтому clear делаем повторно в nextTick (отменяет этот debounce) и
-   * тихо синхронизируем isFieldValid без показа ошибок.
+   * После смены model `watch(value)` у FormItem ставит debounce validate и isDirty —
+   * поэтому clear/meta делаем повторно в nextTick.
    */
   function reset () {
     captureInitialModel();
@@ -80,9 +102,11 @@ export function useFormRoot <MODEL extends FormModel> (options: UseFormRootOptio
     }
 
     clearValidate();
+    resetMeta();
 
     void nextTick(async () => {
       clearValidate();
+      resetMeta();
       await validateForm(true);
     });
   }
@@ -123,6 +147,11 @@ export function useFormRoot <MODEL extends FormModel> (options: UseFormRootOptio
 
   return {
     isValid,
+    showAsInvalid,
+    isDirty,
+    isPristine,
+    isChanged,
+    canSubmit,
     validate,
     clearValidate,
     registerFormItem,

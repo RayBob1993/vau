@@ -1,4 +1,4 @@
-import { Form, type FormExpose } from '../index';
+import { Form, type FormInstance } from '../index';
 import { describe, expect, it } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { ref } from 'vue';
@@ -24,11 +24,11 @@ describe('Form', () => {
     expect(wrapper.get('form.form').find('.form-content').text()).toBe('Контент');
   });
 
-  it('Предоставляет методы FormExpose', () => {
+  it('Предоставляет API FormInstance через ref', () => {
     const model = ref({
       name: ''
     });
-    const formRef = ref<FormExpose | null>(null);
+    const formRef = ref<FormInstance | null>(null);
 
     mount(() => (
       <Form.Root
@@ -47,5 +47,9 @@ describe('Form', () => {
     expect(formRef.value?.clearValidate).toBeTypeOf('function');
     expect(formRef.value?.reset).toBeTypeOf('function');
     expect(formRef.value?.isValid).toBeTypeOf('boolean');
+    expect(formRef.value?.isDirty).toBeTypeOf('boolean');
+    expect(formRef.value?.isPristine).toBeTypeOf('boolean');
+    expect(formRef.value?.isChanged).toBeTypeOf('boolean');
+    expect(formRef.value?.canSubmit).toBeTypeOf('boolean');
   });
 });

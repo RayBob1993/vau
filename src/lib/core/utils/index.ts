@@ -6,6 +6,7 @@ export * from './isObject';
 export * from './isUndefined';
 export * from './isString';
 export * from './isNull';
+export * from './isEqual';
 export * from './getProp';
 export * from './clone';
 export * from './delay';

@@ -18,6 +18,10 @@
     validationStatus,
     isDisabled,
     isRequired,
+    isValid,
+    isDirty,
+    isPristine,
+    isChanged,
     registerField,
     unregisterField,
     reset,
@@ -38,7 +42,11 @@
   const scopedSlot = computed<FormItemScopedSlot>(() => ({
     validationStatus: validationStatus.value,
     isRequired: isRequired.value,
-    errors: validationErrors.value
+    errors: validationErrors.value,
+    isValid: isValid.value,
+    isDirty: isDirty.value,
+    isPristine: isPristine.value,
+    isChanged: isChanged.value
   }));
 
   provide(FormItemContextKey, {
@@ -55,6 +63,10 @@
   });
 
   defineExpose<FormItemExpose>({
+    isValid,
+    isDirty,
+    isPristine,
+    isChanged,
     reset,
     validate,
     clearValidateErrors
@@ -71,7 +83,9 @@
         'form-item--required': isRequired,
         'form-item--invalid': validationStatus.isError,
         'form-item--validating': validationStatus.isValidating,
-        'form-item--valid': validationStatus.isSuccess
+        'form-item--valid': validationStatus.isSuccess,
+        'form-item--dirty': isDirty,
+        'form-item--changed': isChanged
       }
     ]"
   >

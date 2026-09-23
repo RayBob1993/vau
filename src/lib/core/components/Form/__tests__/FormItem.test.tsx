@@ -1,4 +1,4 @@
-import { Form, type FormItemExpose } from '../index';
+import { Form, type FormItemInstance } from '../index';
 import { describe, expect, it } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { ref } from 'vue';
@@ -19,8 +19,8 @@ describe('FormItem', () => {
     expect(wrapper.get('.form-item__header').text()).toContain('Имя');
   });
 
-  it('Предоставляет методы FormItemExpose', () => {
-    const itemRef = ref<FormItemExpose | null>(null);
+  it('Предоставляет API FormItemInstance через ref', () => {
+    const itemRef = ref<FormItemInstance | null>(null);
 
     mount(() => (
       <Form.Item ref={itemRef}>
@@ -32,5 +32,9 @@ describe('FormItem', () => {
     expect(itemRef.value?.validate).toBeTypeOf('function');
     expect(itemRef.value?.clearValidateErrors).toBeTypeOf('function');
     expect(itemRef.value?.reset).toBeTypeOf('function');
+    expect(itemRef.value?.isValid).toBeTypeOf('boolean');
+    expect(itemRef.value?.isDirty).toBeTypeOf('boolean');
+    expect(itemRef.value?.isPristine).toBeTypeOf('boolean');
+    expect(itemRef.value?.isChanged).toBeTypeOf('boolean');
   });
 });
