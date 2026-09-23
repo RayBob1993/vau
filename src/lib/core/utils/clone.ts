@@ -1,6 +1,23 @@
-import { isObject } from './isObject';
+import { isBoolean } from './isBoolean';
 import { isFunction } from './isFunction';
 import { isNull } from './isNull';
+import { isNumber } from './isNumber';
+import { isObject } from './isObject';
+import { isString } from './isString';
+import { isUndefined } from './isUndefined';
+
+/**
+ * Ссылка для WeakMap: не примитив и не функция.
+ * `isObject` сюда не годится — она отличает только обычный объект, а массив и Date нужно клонировать.
+ */
+function isCloneableReference (value: unknown): value is object {
+  if (isNull(value) || isUndefined(value) || isString(value) || isNumber(value) || isBoolean(value) || isFunction(value)) {
+    return false;
+  }
+
+  // symbol, bigint и NaN: отдельных проверок нет, в WeakMap их класть нельзя.
+  return Object(value) === value;
+}
 
 /**
  * @description `clone` - Клонирует переданное значение, создавая его глубокую копию.
@@ -38,8 +55,7 @@ import { isNull } from './isNull';
  */
 
 export function clone <T> (value: T, hash = new WeakMap<object, unknown>): T {
-  // Обрабатываем примитивы (включая Symbol)
-  if (isNull(value) || !isObject(value)) {
+  if (!isCloneableReference(value)) {
     return value;
   }
 
@@ -101,11 +117,6 @@ export function clone <T> (value: T, hash = new WeakMap<object, unknown>): T {
     return cloned as T;
   }
 
-  // Обрабатываем функции (возвращаем ту же ссылку)
-  if (isFunction(value)) {
-    return value;
-  }
-
   // Рекурсивное клонирование для массивов
   if (Array.isArray(value)) {
     const cloned: Array<unknown> = [];
@@ -152,6 +163,6 @@ export function clone <T> (value: T, hash = new WeakMap<object, unknown>): T {
     return cloned as T;
   }
 
-  // Примитивные типы возвращаются без изменений
+  // Экземпляр класса, Object.create(null) и прочие объекты без своей ветки — та же ссылка.
   return value;
 }

@@ -108,13 +108,13 @@ export function throttle <T extends Array<unknown>> (
       timeoutID = null;
     }
 
-    // Очищаем существующий таймаут
-    clearExistingTimeout();
-
-    // Логика для debounce режима
+    // atBegin срабатывает только пока нет активного таймера.
+    // clearExistingTimeout обнуляет timeoutID, поэтому проверка идёт раньше.
     if (!noLeading && debounceMode && !timeoutID) {
       exec.call(this);
     }
+
+    clearExistingTimeout();
 
     // Основная логика throttle
     if (isUndefined(debounceMode) && elapsed > delay) {
