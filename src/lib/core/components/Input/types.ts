@@ -36,8 +36,8 @@ export interface InputScopedSlot {
   isFocus: boolean;
   hasValue: boolean;
   loading: boolean;
-  isValid: boolean;
-  isInvalid: boolean;
+  isSuccess: boolean;
+  isError: boolean;
 }
 
 export interface InputSlots {

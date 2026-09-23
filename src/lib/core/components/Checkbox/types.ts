@@ -21,16 +21,16 @@ export interface CheckboxRootContext {
   isActive: MaybeRefOrGetter<boolean>;
   isDisabled: MaybeRefOrGetter<boolean>;
   isIndeterminate: MaybeRefOrGetter<boolean>;
-  isValid: MaybeRefOrGetter<boolean>;
-  isInvalid: MaybeRefOrGetter<boolean>;
+  isSuccess: MaybeRefOrGetter<boolean>;
+  isError: MaybeRefOrGetter<boolean>;
 }
 
 export interface CheckboxIndicatorScopedSlot {
   isDisabled: boolean;
   isActive: boolean;
   isIndeterminate: boolean;
-  isValid: boolean;
-  isInvalid: boolean;
+  isSuccess: boolean;
+  isError: boolean;
 }
 
 export interface CheckboxIndicatorSlots {

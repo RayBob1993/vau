@@ -11,7 +11,7 @@
     required: true,
   });
 
-  const { formRootContext, formItemContext, isValid, isInvalid } = useFormContext();
+  const { formRootContext, formItemContext, isSuccess, isError } = useFormContext();
 
   const { isDisabled } = useInputRangeRoot({
     formRootContext,
@@ -34,8 +34,8 @@
     class="input-range"
     :class="{
       'input-range--disabled': isDisabled,
-      'input-range--invalid': isInvalid,
-      'input-range--valid': isValid
+      'input-range--invalid': isError,
+      'input-range--valid': isSuccess
     }"
   >
     <slot/>

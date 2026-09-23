@@ -4,7 +4,7 @@
 
   const SwitchRootContext = useSwitchRootContext();
 
-  const { isDisabled, isActive, isValid, isInvalid } = useSwitchIndicator({
+  const { isDisabled, isActive, isSuccess, isError } = useSwitchIndicator({
     switchRootContext: SwitchRootContext,
   });
 </script>
@@ -15,8 +15,8 @@
     :class="{
       'switch-indicator--disabled': isDisabled,
       'switch-indicator--active': isActive,
-      'switch-indicator--valid': isValid,
-      'switch-indicator--invalid': isInvalid
+      'switch-indicator--valid': isSuccess,
+      'switch-indicator--invalid': isError
     }"
   />
 </template>

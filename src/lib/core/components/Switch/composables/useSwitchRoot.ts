@@ -1,6 +1,6 @@
 import type { SwitchProps, SwitchModelValue } from '../types';
 import type { FormRootContext, FormItemContext } from '../../Form';
-import type { MaybeNull } from '../../../types';
+import type { Maybe, MaybeNull } from '../../../types';
 import { computed, type MaybeRefOrGetter, onMounted, onUnmounted, toValue } from 'vue';
 
 export interface UseSwitchRootOptions {
@@ -24,14 +24,16 @@ export function useSwitchRoot (options: UseSwitchRootOptions) {
     );
   });
 
+  let unregisterField: Maybe<VoidFunction>;
+
   onMounted(() => {
-    options.formItemContext?.registerField({
-      isDisabled: () => Boolean(props.value?.disabled)
+    unregisterField = options.formItemContext?.registerField({
+      isDisabled: () => Boolean(props.value.disabled)
     });
   });
 
   onUnmounted(() => {
-    options.formItemContext?.unregisterField();
+    unregisterField?.();
   });
 
   return {

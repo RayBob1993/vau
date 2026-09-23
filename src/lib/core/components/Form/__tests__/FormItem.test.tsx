@@ -31,7 +31,7 @@ describe('FormItem', () => {
     expect(itemRef.value).not.toBeNull();
     expect(itemRef.value?.validate).toBeTypeOf('function');
     expect(itemRef.value?.clearValidateErrors).toBeTypeOf('function');
-    expect(itemRef.value?.reset).toBeTypeOf('function');
+    expect(itemRef.value?.resetMeta).toBeTypeOf('function');
     expect(itemRef.value?.isValid).toBeTypeOf('boolean');
     expect(itemRef.value?.isDirty).toBeTypeOf('boolean');
     expect(itemRef.value?.isPristine).toBeTypeOf('boolean');

@@ -25,8 +25,6 @@
     isPristine,
     isChanged,
     registerField,
-    unregisterField,
-    reset,
     resetMeta,
     validate,
     clearValidateErrors
@@ -59,8 +57,6 @@
     isRequired,
     isDisabled,
     registerField,
-    unregisterField,
-    reset,
     validate,
     clearValidateErrors
   });
@@ -75,7 +71,6 @@
     isPristine,
     isChanged,
     validationStatus,
-    reset,
     resetMeta,
     validate,
     clearValidateErrors

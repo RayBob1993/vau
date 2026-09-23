@@ -1,6 +1,6 @@
 import type { InputNumberModelValue, InputNumberProps } from '../types';
 import type { FormRootContext, FormItemContext } from '../../Form';
-import type { MaybeNull } from '../../../types';
+import type { Maybe, MaybeNull } from '../../../types';
 import { INPUT_NUMBER_STEP } from '../constants';
 import { isNumber } from '../../../utils';
 import { computed, type MaybeRefOrGetter, onMounted, onUnmounted, toValue } from 'vue';
@@ -66,14 +66,16 @@ export function useInputNumberRoot (options: UseInputNumberRootOptions) {
     options.onUpdateModelValue?.(value);
   }
 
+  let unregisterField: Maybe<VoidFunction>;
+
   onMounted(() => {
-    options.formItemContext?.registerField({
+    unregisterField = options.formItemContext?.registerField({
       isDisabled: () => Boolean(props.value.disabled)
     });
   });
 
   onUnmounted(() => {
-    options.formItemContext?.unregisterField();
+    unregisterField?.();
   });
 
   return {

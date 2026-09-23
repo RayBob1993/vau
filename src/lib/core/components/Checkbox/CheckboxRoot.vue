@@ -11,7 +11,7 @@
 
   const modelValue = defineModel<CheckboxModelValue>();
 
-  const { formRootContext, formItemContext, isValid, isInvalid } = useFormContext();
+  const { formRootContext, formItemContext, isSuccess, isError } = useFormContext();
 
   const { isChecked, isDisabled, isIndeterminate } = useCheckboxRoot({
     formRootContext,
@@ -39,8 +39,8 @@
     isActive: () => isChecked.value,
     isDisabled: () => isDisabled.value,
     isIndeterminate: () => isIndeterminate.value,
-    isValid: () => isValid.value,
-    isInvalid: () => isInvalid.value
+    isSuccess: () => isSuccess.value,
+    isError: () => isError.value
   });
 </script>
 
@@ -51,8 +51,8 @@
       'checkbox--disabled': isDisabled,
       'checkbox--active': isChecked,
       'checkbox--indeterminate': isIndeterminate,
-      'checkbox--invalid': isInvalid,
-      'checkbox--valid': isValid
+      'checkbox--invalid': isError,
+      'checkbox--valid': isSuccess
     }"
   >
     <input

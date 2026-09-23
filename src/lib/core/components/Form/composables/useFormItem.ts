@@ -2,6 +2,7 @@ import type { Maybe, MaybeNull } from '../../../types';
 import type { FormRootContext, FormItemProps, FormModelValues, FormItemInstance, FormModel, FormRules } from '../types';
 import { useFormField } from './useFormField';
 import { useFormItemValidation } from './useFormItemValidation';
+import { isRuleRequired } from '../utils';
 import { useToggle } from '../../../composables';
 import { debounce, isEqual } from '../../../utils';
 import { z, type ZodType } from 'zod';
@@ -18,7 +19,7 @@ export interface UseFormItemOptions {
 export function useFormItem (options: UseFormItemOptions) {
   const id = useId();
 
-  const { field, registerField, unregisterField } = useFormField();
+  const { isFieldDisabled, registerField } = useFormField();
 
   const [isDirty, setIsDirty] = useToggle(false);
 
@@ -53,13 +54,13 @@ export function useFormItem (options: UseFormItemOptions) {
   });
 
   /**
-   * Disabled формы, FormItem или зарегистрированного контрола (например VInput disabled).
+   * Disabled формы, FormItem или всех зарегистрированных контролов (например VInput disabled).
    */
   const isDisabled = computed<boolean>(() => {
     return Boolean(
       options.formRootContext?.props.disabled ||
-      props.value?.disabled ||
-      toValue(field.value?.isDisabled)
+      props.value.disabled ||
+      isFieldDisabled.value
     );
   });
 
@@ -113,9 +114,8 @@ export function useFormItem (options: UseFormItemOptions) {
       return false;
     }
 
-    return !rule.value.safeParse(undefined).success;
+    return isRuleRequired(rule.value);
   });
-
 
   const isPristine = computed<boolean>(() => !isDirty.value);
 
@@ -136,21 +136,15 @@ export function useFormItem (options: UseFormItemOptions) {
   });
 
   /**
-   * Disabled-поле не участвует в валидации и не блокирует форму.
+   * Невалидируемое поле (disabled, без `name` или без rule) не участвует в валидации
+   * и не блокирует форму — результат `true`, как и `isValid`.
    */
   async function validate (silent = false): Promise<boolean> {
-    if (isDisabled.value) {
+    if (!isValidatable.value) {
       return true;
     }
 
     return validateField(silent);
-  }
-
-  /**
-   * Сброс UI-статуса валидации поля.
-   */
-  function reset () {
-    clearValidateErrors();
   }
 
   function resetMeta () {
@@ -165,9 +159,27 @@ export function useFormItem (options: UseFormItemOptions) {
     void validate();
   }, 300);
 
+  /** Тихий parse — обновить isFieldValid без показа ошибок (для isValid кнопки). */
+  function validateSilent () {
+    if (!isValidatable.value) {
+      return;
+    }
+
+    void validate(true);
+  }
+
+  /**
+   * Очистить UI-статус и ошибки поля. `isFieldValid` не сбрасывается,
+   * а пересчитывается silent-parse — форма не становится невалидной на валидных данных.
+   */
   function clearValidateErrors () {
-    debouncedValidate.cancel();
+    /* Только отложенный вызов: cancel() без upcomingOnly отключил бы debounce навсегда. */
+    debouncedValidate.cancel({
+      upcomingOnly: true
+    });
+
     clearFieldValidateErrors();
+    validateSilent();
   }
 
   /**
@@ -206,19 +218,9 @@ export function useFormItem (options: UseFormItemOptions) {
       return toValue(options.el) ?? null;
     },
     validate,
-    reset,
     resetMeta,
     clearValidateErrors
   };
-
-  /** Тихий parse — обновить isFieldValid без показа ошибок (для isValid кнопки). */
-  function validateSilent () {
-    if (!isValidatable.value) {
-      return;
-    }
-
-    void validate(true);
-  }
 
   onMounted(() => {
     options.formRootContext?.registerFormItem(instance);
@@ -232,6 +234,13 @@ export function useFormItem (options: UseFormItemOptions) {
   });
 
   watch(value, () => {
+    /* Form.reset(): значение вернула форма, а не пользователь — только пересчёт isFieldValid. */
+    if (options.formRootContext?.isResetting.value) {
+      validateSilent();
+
+      return;
+    }
+
     if (name.value) {
       setIsDirty(true);
     }
@@ -241,6 +250,8 @@ export function useFormItem (options: UseFormItemOptions) {
     }
 
     debouncedValidate();
+  }, {
+    deep: true
   });
 
   watch(isValidatable, (validatable, wasValidatable) => {
@@ -257,14 +268,17 @@ export function useFormItem (options: UseFormItemOptions) {
 
   /**
    * Смена Zod-схемы (например rules в computed): пересчитать isFieldValid.
-   * Если ошибки уже показаны — обновить UI; иначе только silent для кнопки.
+   * Если UI уже показывает вердикт (ошибка или успех) — обновить его громко,
+   * чтобы статус не устарел; иначе только silent для кнопки.
    */
   watch(rule, (newRule, oldRule) => {
     if (newRule === oldRule || !isValidatable.value) {
       return;
     }
 
-    if (validationStatus.value.isError) {
+    const { isError, isSuccess } = validationStatus.value;
+
+    if (isError || isSuccess) {
       void validate();
 
       return;
@@ -284,11 +298,9 @@ export function useFormItem (options: UseFormItemOptions) {
     validationStatus,
     isDisabled,
     isRequired,
-    reset,
     resetMeta,
     validate,
     clearValidateErrors,
-    registerField,
-    unregisterField,
+    registerField
   };
 }

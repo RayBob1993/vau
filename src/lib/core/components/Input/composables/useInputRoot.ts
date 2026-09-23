@@ -1,4 +1,4 @@
-import type { MaybeNull } from '../../../types';
+import type { Maybe, MaybeNull } from '../../../types';
 import type { FormRootContext, FormItemContext } from '../../Form';
 import type { InputModelValue, InputProps } from '../types';
 import { InputTypes } from '../../../constants';
@@ -40,14 +40,16 @@ export function useInputRoot (options: UseInputRootOptions) {
     setModelValue('');
   }
 
+  let unregisterField: Maybe<VoidFunction>;
+
   onMounted(() => {
-    options.formItemContext?.registerField({
-      isDisabled: () => Boolean(props.value?.disabled)
+    unregisterField = options.formItemContext?.registerField({
+      isDisabled: () => Boolean(props.value.disabled || props.value.loading)
     });
   });
 
   onUnmounted(() => {
-    options.formItemContext?.unregisterField();
+    unregisterField?.();
   });
 
   return {

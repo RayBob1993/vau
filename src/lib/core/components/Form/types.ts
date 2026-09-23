@@ -17,7 +17,10 @@ export interface FormProps<MODEL> {
 
 export interface FormSubmitEvent {
   isValid: boolean;
+  /** Вернуть model к initial. */
   reset: VoidFunction;
+  /** Принять текущую model как новый initial (после успешного сохранения). */
+  commit: VoidFunction;
 }
 
 export interface FormItemEmits {
@@ -55,9 +58,14 @@ export interface FormSlots {
 export type FormValidationResult = Promise<boolean>;
 
 /**
- * Результат validate на уровне формы: `undefined` — прогон устарел (takeLatest).
+ * Результат validate на уровне формы.
+ * `isValid` — честный результат этого прогона; `isLatest === false` — прогон устарел
+ * (takeLatest: пришёл более новый validate), события и скролл не применялись.
  */
-export type FormRootValidationResult = Promise<boolean | undefined>;
+export interface FormRootValidationResult {
+  isValid: boolean;
+  isLatest: boolean;
+}
 
 export interface FormInstance {
   isValid: boolean;
@@ -67,8 +75,11 @@ export interface FormInstance {
   isValidating: boolean;
   canSubmit: boolean;
   validate: (silent?: boolean) => FormValidationResult;
+  /** Программный submit: громкая валидация и событие `submit` — как нативный submit формы. */
+  submit: () => Promise<void>;
   clearValidate: VoidFunction;
   reset: VoidFunction;
+  commit: VoidFunction;
 }
 
 export interface FormExpose {
@@ -79,8 +90,10 @@ export interface FormExpose {
   isValidating: ComputedRef<boolean>;
   canSubmit: ComputedRef<boolean>;
   validate: (silent?: boolean) => FormValidationResult;
+  submit: () => Promise<void>;
   clearValidate: VoidFunction;
   reset: VoidFunction;
+  commit: VoidFunction;
 }
 
 export type FormItemError = ZodError['issues'][number];
@@ -114,13 +127,16 @@ export interface FormItemContext {
   props: FormItemProps;
   validationStatus: Ref<FormItemValidationStatus>;
   validationErrors: Ref<Array<FormItemError>>;
-  registerField: (field: FormItemField) => void;
-  unregisterField: VoidFunction;
+  /**
+   * Регистрация контрола в поле. Несколько контролов (группа Radio/Checkbox) — несколько регистраций;
+   * поле disabled, когда disabled все контролы.
+   * @returns Функция отписки — вызвать в `onUnmounted` контрола.
+   */
+  registerField: (field: FormItemField) => VoidFunction;
   isRequired: ComputedRef<boolean>;
   isDisabled: ComputedRef<boolean>;
   validate: (silent?: boolean) => FormValidationResult;
   clearValidateErrors: VoidFunction;
-  reset: VoidFunction;
 }
 
 export interface FormItemValidationStatus {
@@ -130,7 +146,7 @@ export interface FormItemValidationStatus {
 }
 
 export interface FormItemInstance {
-  id: string;
+  readonly id: string;
   readonly isValidatable: boolean;
   /**
    * Результат последнего parse поля (в т.ч. silent).
@@ -145,10 +161,11 @@ export interface FormItemInstance {
   readonly validationStatus: FormItemValidationStatus;
   readonly props: FormItemProps;
   readonly el: HTMLElement | null;
+  /** Валидировать поле. Невалидируемое (disabled / без rule) — всегда `true`, согласованно с `isValid`. */
   validate: (silent?: boolean) => FormValidationResult;
+  /** Очистить UI-статус и ошибки; логический `isFieldValid` пересчитывается silent-parse. */
   clearValidateErrors: VoidFunction;
-  reset: VoidFunction;
-  /** Сброс isDirty (после Form.reset). */
+  /** Сброс isDirty (после Form.reset / commit). */
   resetMeta: VoidFunction;
 }
 
@@ -157,6 +174,8 @@ export interface FormRootContext {
   modelValue: ModelRef<FormModel>;
   /** Снимок model для reset и isChanged. */
   initialModel: DeepReadonly<ShallowRef<FormModel | undefined>>;
+  /** Идёт `Form.reset()`: смена value не считается вводом пользователя. */
+  isResetting: Readonly<Ref<boolean>>;
   registerFormItem: (formItem: FormItemInstance) => void;
   unregisterFormItem: (id: string) => void;
 }
@@ -173,6 +192,5 @@ export interface FormItemExpose {
   el: TemplateRef<HTMLElement>;
   validate: (silent?: boolean) => FormValidationResult;
   clearValidateErrors: VoidFunction;
-  reset: VoidFunction;
   resetMeta: VoidFunction;
 }

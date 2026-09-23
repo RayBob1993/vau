@@ -1,6 +1,7 @@
 import type { FormItemError, FormItemValidationStatus, FormValidationResult, FormModel } from '../types';
 import type { ZodObject } from 'zod';
 import type { MaybeNull } from '../../../types';
+import { createRuleExceptionIssue } from '../utils';
 import { useToggle } from '../../../composables';
 import { takeLatest } from '../../../utils';
 import { type MaybeRefOrGetter, type Ref, computed, onScopeDispose, ref, toValue } from 'vue';
@@ -17,6 +18,7 @@ export interface UseFormItemValidationReturn {
   isFieldValid: Ref<boolean>;
   validationStatus: Ref<FormItemValidationStatus>;
   validationErrors: Ref<Array<FormItemError>>;
+  /** Сброс UI-статуса и ошибок; `isFieldValid` не меняется. */
   clearValidateErrors: VoidFunction;
   validate: (silent?: boolean) => FormValidationResult;
 }
@@ -45,27 +47,43 @@ export function useFormItemValidation (options: UseFormItemValidationOptions): U
 
   /**
    * Чистый parse без записи в UI — side effects только при isLatest.
+   *
+   * Исключение из правила (`throw` в refine, упавший запрос в async-refine) `safeParseAsync`
+   * не ловит. Здесь оно превращается в невалидный результат с одной ошибкой — иначе
+   * `isValidating` зависнет, `validate()`/`submit()` отклонятся, а `void validate()` даст unhandled rejection.
    */
   const parseLatest = takeLatest(async (): Promise<ParseResult | null> => {
     if (!data.value || !schema.value) {
       return null;
     }
 
-    const result = await schema.value.safeParseAsync(data.value);
+    try {
+      const result = await schema.value.safeParseAsync(data.value);
 
-    if (result.success) {
-      return { ok: true };
+      if (result.success) {
+        return { ok: true };
+      }
+
+      return {
+        ok: false,
+        issues: result.error.issues
+      };
+    } catch (error) {
+      console.error(`[vau Form] Исключение в правиле поля "${Object.keys(data.value).join(', ')}":`, error);
+
+      return {
+        ok: false,
+        issues: [createRuleExceptionIssue(data.value)]
+      };
     }
-
-    return {
-      ok: false,
-      issues: result.error.issues
-    };
   });
 
+  /**
+   * Только UI: ошибки и статус. `isFieldValid` не трогаем — иначе форма
+   * становится невалидной до следующего ввода. Актуализирует его вызывающий (silent parse).
+   */
   function clearValidateErrors () {
     parseLatest.cancel();
-    setIsFieldValid(false);
     validationErrors.value = [];
 
     setValidationStatus({
@@ -114,11 +132,12 @@ export function useFormItemValidation (options: UseFormItemValidationOptions): U
       validationErrors.value = [];
       setValidationStatus({ isError: false });
 
-      /* UI-успех только при «громкой» валидации — silent нужен для isValid кнопки. */
-      if (!silent) {
-        setValidationStatus({ isSuccess: true });
+      /* Silent обновляет только isFieldValid: без UI-успеха и без события valid. */
+      if (silent) {
+        return true;
       }
 
+      setValidationStatus({ isSuccess: true });
       options.onValid?.();
 
       return true;
@@ -126,14 +145,15 @@ export function useFormItemValidation (options: UseFormItemValidationOptions): U
 
     setIsFieldValid(false);
 
-    if (!silent) {
-      setValidationStatus({ isError: true, isSuccess: false });
-      validationErrors.value = parsed.issues;
-    } else {
-      /* Silent fail: логика невалидна, зелёный UI сбрасываем, ошибки не показываем. */
+    /* Silent fail: логика невалидна, зелёный UI сбрасываем; ошибки и событие invalid — нет. */
+    if (silent) {
       setValidationStatus({ isSuccess: false });
+
+      return false;
     }
 
+    setValidationStatus({ isError: true, isSuccess: false });
+    validationErrors.value = parsed.issues;
     options.onInvalid?.();
 
     return false;

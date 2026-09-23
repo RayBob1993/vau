@@ -1,6 +1,6 @@
 import type { RadioProps, RadioModelValue } from '../types';
 import type { FormRootContext, FormItemContext } from '../../Form';
-import type { MaybeNull } from '../../../types';
+import type { Maybe, MaybeNull } from '../../../types';
 import { computed, type MaybeRefOrGetter, onMounted, onUnmounted, toValue } from 'vue';
 
 export interface UseRadioRootOptions {
@@ -26,18 +26,17 @@ export function useRadioRoot (options: UseRadioRootOptions) {
 
   const isActive = computed<boolean>(() => modelValue.value === props.value.value);
 
+  let unregisterField: Maybe<VoidFunction>;
+
   onMounted(() => {
-    options.formItemContext?.registerField({
-      /**
-       * Disabled отдельной radio-опции не отключает валидацию FormItem.
-       * Для всего поля используйте disabled на FormItem/Form.
-       */
-      isDisabled: () => false
+    /* Поле disabled, только если disabled все опции группы — агрегирует FormItem. */
+    unregisterField = options.formItemContext?.registerField({
+      isDisabled: () => Boolean(props.value.disabled)
     });
   });
 
   onUnmounted(() => {
-    options.formItemContext?.unregisterField();
+    unregisterField?.();
   });
 
   return {

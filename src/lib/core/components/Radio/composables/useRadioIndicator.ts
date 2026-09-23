@@ -9,13 +9,13 @@ export interface UseRadioIndicatorOptions {
 export function useRadioIndicator (options: UseRadioIndicatorOptions) {
   const isDisabled = computed<boolean>(() => Boolean(toValue(options.radioRootContext?.isDisabled)));
   const isActive = computed<boolean>(() => Boolean(toValue(options.radioRootContext?.isActive)));
-  const isValid = computed<boolean>(() => Boolean(toValue(options.radioRootContext?.isValid)));
-  const isInvalid = computed<boolean>(() => Boolean(toValue(options.radioRootContext?.isInvalid)));
+  const isSuccess = computed<boolean>(() => Boolean(toValue(options.radioRootContext?.isSuccess)));
+  const isError = computed<boolean>(() => Boolean(toValue(options.radioRootContext?.isError)));
 
   return {
     isDisabled,
     isActive,
-    isValid,
-    isInvalid
+    isSuccess,
+    isError
   };
 }

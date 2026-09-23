@@ -14,7 +14,8 @@ export function useFormValidation (options: UseFormValidationOptions) {
   const validatableFormItems = computed<Array<FormItemInstance>>(() => formItems.value.filter(formItem => formItem.isValidatable));
 
   /**
-   * Агрегация validate полей: колбэки onValid/onInvalid — только у последнего прогона.
+   * Агрегация validate полей: колбэки onValid/onInvalid — только у последнего
+   * и только «громкого» прогона (silent нужен для isValid и не должен эмитить события).
    */
   const validateLatest = takeLatest(async (silent: boolean): Promise<boolean> => {
     const validationPromises = await Promise.all(
@@ -24,11 +25,11 @@ export function useFormValidation (options: UseFormValidationOptions) {
     return validationPromises.every(Boolean);
   });
 
-  async function validate (silent = false): FormRootValidationResult {
+  async function validate (silent = false): Promise<FormRootValidationResult> {
     const { value: isValid, isLatest } = await validateLatest(silent);
 
-    if (!isLatest) {
-      return undefined;
+    if (!isLatest || silent) {
+      return { isValid, isLatest };
     }
 
     if (isValid) {
@@ -37,7 +38,10 @@ export function useFormValidation (options: UseFormValidationOptions) {
       options.onInvalid?.();
     }
 
-    return isValid;
+    return {
+      isValid,
+      isLatest
+    };
   }
 
   function clearValidate () {

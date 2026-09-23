@@ -29,9 +29,11 @@
     isChanged: computed(() => rootRef.value?.isChanged ?? false),
     isValidating: computed(() => rootRef.value?.isValidating ?? false),
     canSubmit: computed(() => rootRef.value?.canSubmit ?? false),
-    validate: (silent?: boolean) => rootRef.value!.validate(silent),
-    clearValidate: () => rootRef.value!.clearValidate(),
-    reset: () => rootRef.value!.reset()
+    validate: (silent?: boolean) => rootRef.value?.validate(silent) ?? Promise.resolve(false),
+    submit: () => rootRef.value?.submit() ?? Promise.resolve(),
+    clearValidate: () => rootRef.value?.clearValidate(),
+    reset: () => rootRef.value?.reset(),
+    commit: () => rootRef.value?.commit()
   });
 </script>
 

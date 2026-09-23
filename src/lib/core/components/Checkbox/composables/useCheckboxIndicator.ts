@@ -10,14 +10,14 @@ export function useCheckboxIndicator (options: UseCheckboxIndicatorOptions) {
   const isDisabled = computed<boolean>(() => Boolean(toValue(options.checkboxRootContext?.isDisabled)));
   const isActive = computed<boolean>(() => Boolean(toValue(options.checkboxRootContext?.isActive)));
   const isIndeterminate = computed<boolean>(() => Boolean(toValue(options.checkboxRootContext?.isIndeterminate)));
-  const isValid = computed<boolean>(() => Boolean(toValue(options.checkboxRootContext?.isValid)));
-  const isInvalid = computed<boolean>(() => Boolean(toValue(options.checkboxRootContext?.isInvalid)));
+  const isSuccess = computed<boolean>(() => Boolean(toValue(options.checkboxRootContext?.isSuccess)));
+  const isError = computed<boolean>(() => Boolean(toValue(options.checkboxRootContext?.isError)));
 
   return {
     isDisabled,
     isActive,
     isIndeterminate,
-    isValid,
-    isInvalid
+    isSuccess,
+    isError
   };
 }

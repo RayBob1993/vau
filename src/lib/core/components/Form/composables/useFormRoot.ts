@@ -1,4 +1,4 @@
-import type { FormItemInstance, FormModel } from '../types';
+import type { FormItemInstance, FormModel, FormRootValidationResult, FormSubmitEvent } from '../types';
 import type { Maybe } from '../../../types';
 import { useFormItems } from './useFormItems';
 import { useFormValidation } from './useFormValidation';
@@ -10,9 +10,11 @@ import { computed, nextTick, onMounted, readonly, shallowRef, toValue, type Mayb
 export interface UseFormRootOptions <MODEL extends FormModel> {
   modelValue: MaybeRefOrGetter<MODEL>;
   onUpdateModelValue: (value: MODEL) => void;
+  disabled?: MaybeRefOrGetter<Maybe<boolean>>;
   scrollToError?: MaybeRefOrGetter<Maybe<boolean | ScrollIntoViewOptions>>;
   onValid?: VoidFunction;
   onInvalid?: VoidFunction;
+  onSubmit?: (payload: FormSubmitEvent) => void;
 }
 
 export function useFormRoot <MODEL extends FormModel> (options: UseFormRootOptions<MODEL>) {
@@ -43,6 +45,11 @@ export function useFormRoot <MODEL extends FormModel> (options: UseFormRootOptio
    */
   const [isRegistryReady, setIsRegistryReady] = useToggle();
 
+  /**
+   * Идёт reset(): FormItem не ставит isDirty и debounce на приход initial-значения.
+   */
+  const [isResetting, setIsResetting] = useToggle();
+
   const namedFormItems = computed<Array<FormItemInstance>>(() => formItems.value.filter(item => Boolean(item.props.name)));
 
   const isValid = computed<boolean>(() => {
@@ -59,11 +66,7 @@ export function useFormRoot <MODEL extends FormModel> (options: UseFormRootOptio
     return items.every(item => item.isFieldValid);
   });
 
-  /**
-   * Класс form--invalid: не зеркало !isValid до готовности реестра
-   * (иначе вспышка «ошибки» при mount, когда isValid ещё false).
-   */
-  const showAsInvalid = computed<boolean>(() => isRegistryReady.value && !isValid.value);
+  const hasErrors = computed<boolean>(() => validatableFormItems.value.some(item => item.validationStatus.isError));
 
   const isDirty = computed<boolean>(() => namedFormItems.value.some(item => item.isDirty));
 
@@ -71,11 +74,17 @@ export function useFormRoot <MODEL extends FormModel> (options: UseFormRootOptio
 
   const isChanged = computed<boolean>(() => namedFormItems.value.some(item => item.isChanged));
 
-  /** Хотя бы одно поле в процессе validate. */
-  const isValidating = computed<boolean>(() => formItems.value.some(item => item.validationStatus.isValidating));
+  const isValidating = computed<boolean>(() => validatableFormItems.value.some(item => item.validationStatus.isValidating));
 
-  /** Валидна, отличается от initial и не в процессе validate. */
-  const canSubmit = computed<boolean>(() => isValid.value && isChanged.value && !isValidating.value);
+  const isDisabled = computed<boolean>(() => Boolean(toValue(options.disabled)));
+
+  const canSubmit = computed<boolean>(() => {
+    if (isDisabled.value) {
+      return false;
+    }
+
+    return isValid.value && isChanged.value && !isValidating.value;
+  });
 
   function captureInitialModel () {
     if (initialModel.value) {
@@ -92,13 +101,15 @@ export function useFormRoot <MODEL extends FormModel> (options: UseFormRootOptio
   }
 
   /**
-   * Восстанавливает model из снимка на mount и сбрасывает статусы валидации / meta.
+   * Восстанавливает model из снимка initial и сбрасывает статусы валидации / meta.
    *
-   * После смены model `watch(value)` у FormItem ставит debounce validate и isDirty —
-   * поэтому clear/meta делаем повторно в nextTick.
+   * Пока `isResetting`, FormItem на смену value не ставит isDirty и debounce,
+   * а только пересчитывает `isFieldValid`. Флаг снимается в nextTick —
+   * рассчитано на синхронный `v-model` у родителя.
    */
   function reset () {
     captureInitialModel();
+    setIsResetting(true);
 
     if (initialModel.value) {
       options.onUpdateModelValue(clone(initialModel.value));
@@ -107,11 +118,35 @@ export function useFormRoot <MODEL extends FormModel> (options: UseFormRootOptio
     clearValidate();
     resetMeta();
 
-    void nextTick(async () => {
-      clearValidate();
-      resetMeta();
-      await validateForm(true);
+    void nextTick(() => {
+      setIsResetting(false);
     });
+  }
+
+  /**
+   * Принять текущую model как новый initial: `isChanged` → false, `isDirty` сброшен,
+   * UI-статусы валидации очищены. Вызывать после успешного сохранения
+   * или после асинхронной загрузки данных в model.
+   */
+  function commit () {
+    initialModel.value = clone(toValue(options.modelValue));
+
+    clearValidate();
+    resetMeta();
+  }
+
+  /**
+   * Прогон валидации с признаком актуальности. Скролл к ошибке — только у актуального громкого прогона.
+   */
+  async function runValidation (silent: boolean): Promise<FormRootValidationResult> {
+    const result = await validateForm(silent);
+
+    if (result.isLatest && !silent && !result.isValid) {
+      await nextTick();
+      scrollToFirstError();
+    }
+
+    return result;
   }
 
   /**
@@ -121,22 +156,32 @@ export function useFormRoot <MODEL extends FormModel> (options: UseFormRootOptio
    * @param silent - Если `true`, ошибки в UI не показываются (`isError` / issues не выставляются),
    *   но логический результат поля всё равно обновляется. Если `false` (по умолчанию) —
    *   при ошибке выводятся сообщения и статус `isError`, при успехе — `isSuccess`.
-   * @returns `true`, если все валидируемые поля прошли проверку; `false` — иначе
-   *   (в т.ч. если прогон устарел из‑за `takeLatest`).
+   * @returns Честный результат этого прогона: `true`, если все валидируемые поля прошли проверку.
+   *   Если во время прогона стартовал более новый validate, UI и события применяет только он.
    */
   async function validate (silent = false): Promise<boolean> {
-    const result = await validateForm(silent);
+    const { isValid } = await runValidation(silent);
 
-    if (result === undefined) {
-      return false;
+    return isValid;
+  }
+
+  /**
+   * Submit формы: громкая валидация и событие `submit`.
+   * Повторный submit во время прогона делает предыдущий устаревшим — событие
+   * получает только последний, без ложного `isValid: false`.
+   */
+  async function submit () {
+    const { isValid, isLatest } = await runValidation(false);
+
+    if (!isLatest) {
+      return;
     }
 
-    if (!silent && !result) {
-      await nextTick();
-      scrollToFirstError();
-    }
-
-    return result;
+    options.onSubmit?.({
+      isValid,
+      reset,
+      commit
+    });
   }
 
   onMounted(async () => {
@@ -150,17 +195,20 @@ export function useFormRoot <MODEL extends FormModel> (options: UseFormRootOptio
 
   return {
     isValid,
-    showAsInvalid,
+    hasErrors,
     isDirty,
     isPristine,
     isChanged,
     isValidating,
     canSubmit,
     validate,
+    submit,
     clearValidate,
     registerFormItem,
     unregisterFormItem,
     initialModel: readonly(initialModel),
-    reset
+    isResetting: readonly(isResetting),
+    reset,
+    commit
   };
 }

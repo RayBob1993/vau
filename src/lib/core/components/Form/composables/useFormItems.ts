@@ -1,8 +1,8 @@
 import type { FormItemInstance } from '../types';
-import { ref } from 'vue';
+import { shallowRef } from 'vue';
 
 export function useFormItems () {
-  const formItems = ref<Array<FormItemInstance>>([]);
+  const formItems = shallowRef<Array<FormItemInstance>>([]);
 
   function warnDuplicateName (newFormItem: FormItemInstance) {
     if (!import.meta.env.DEV) {
@@ -36,10 +36,12 @@ export function useFormItems () {
     const index = formItems.value.findIndex(item => item.id === newFormItem.id);
 
     if (index === -1) {
-      formItems.value.push(newFormItem);
-    } else {
-      formItems.value[index] = newFormItem;
+      formItems.value = [...formItems.value, newFormItem];
+
+      return;
     }
+
+    formItems.value = formItems.value.map(item => (item.id === newFormItem.id ? newFormItem : item));
   }
 
   function unregisterFormItem (id: string) {

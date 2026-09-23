@@ -10,7 +10,7 @@
     required: true,
   });
 
-  const { formRootContext, formItemContext, isValid, isInvalid } = useFormContext();
+  const { formRootContext, formItemContext, isSuccess, isError } = useFormContext();
 
   const { isDisabled } = useInputCodeRoot({
     formRootContext,
@@ -33,8 +33,8 @@
     class="input-code"
     :class="{
       'input-code--disabled': isDisabled,
-      'input-code--invalid': isInvalid,
-      'input-code--valid': isValid
+      'input-code--invalid': isError,
+      'input-code--valid': isSuccess
     }"
   >
     <slot/>

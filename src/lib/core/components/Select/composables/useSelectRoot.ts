@@ -1,5 +1,5 @@
 import type { SelectProps, SelectModelValue, OptionValue } from '../types';
-import type { MaybeNull } from '../../../types';
+import type { Maybe, MaybeNull } from '../../../types';
 import type { FormRootContext, FormItemContext } from '../../Form';
 import { useSelectOptions } from './useSelectOptions';
 import { useActiveSelectOptions } from './useActiveSelectOptions';
@@ -93,14 +93,16 @@ export function useSelectRoot (options: UseSelectRootOptions) {
     }
   }
 
+  let unregisterField: Maybe<VoidFunction>;
+
   onMounted(() => {
-    options.formItemContext?.registerField({
-      isDisabled: () => Boolean(props.value?.disabled)
+    unregisterField = options.formItemContext?.registerField({
+      isDisabled: () => Boolean(props.value.disabled)
     });
   });
 
   onUnmounted(() => {
-    options.formItemContext?.unregisterField();
+    unregisterField?.();
   });
 
   return {

@@ -31,9 +31,8 @@
       isValidating: false,
       isSuccess: false
     }),
-    validate: (silent?: boolean) => itemRef.value!.validate(silent),
-    clearValidateErrors: () => itemRef.value!.clearValidateErrors(),
-    reset: () => itemRef.value!.reset(),
+    validate: (silent?: boolean) => itemRef.value?.validate(silent) ?? Promise.resolve(false),
+    clearValidateErrors: () => itemRef.value?.clearValidateErrors(),
     resetMeta: () => itemRef.value?.resetMeta()
   });
 </script>

@@ -16,8 +16,8 @@ export interface RadioEmits {
 export interface RadioIndicatorScopedSlot {
   isDisabled: boolean;
   isActive: boolean;
-  isValid: boolean;
-  isInvalid: boolean;
+  isSuccess: boolean;
+  isError: boolean;
 }
 
 export interface RadioIndicatorSlots {
@@ -29,8 +29,8 @@ export interface RadioRootContext {
   modelValue: MaybeRefOrGetter<RadioModelValue>;
   isActive: MaybeRefOrGetter<boolean>;
   isDisabled: MaybeRefOrGetter<boolean>;
-  isValid: MaybeRefOrGetter<boolean>;
-  isInvalid: MaybeRefOrGetter<boolean>;
+  isSuccess: MaybeRefOrGetter<boolean>;
+  isError: MaybeRefOrGetter<boolean>;
 }
 
 export type RadioGroupProps = Partial<DirectionProp>;

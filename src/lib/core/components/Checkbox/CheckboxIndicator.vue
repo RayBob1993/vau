@@ -7,7 +7,7 @@
 
   const CheckboxRootContext = useCheckboxRootContext();
 
-  const { isDisabled, isActive, isIndeterminate, isValid, isInvalid } = useCheckboxIndicator({
+  const { isDisabled, isActive, isIndeterminate, isSuccess, isError } = useCheckboxIndicator({
     checkboxRootContext: CheckboxRootContext,
   });
 </script>
@@ -19,16 +19,16 @@
       'checkbox-indicator--disabled': isDisabled,
       'checkbox-indicator--active': isActive,
       'checkbox-indicator--indeterminate': isIndeterminate,
-      'checkbox-indicator--valid': isValid,
-      'checkbox-indicator--invalid': isInvalid
+      'checkbox-indicator--valid': isSuccess,
+      'checkbox-indicator--invalid': isError
     }"
   >
     <slot
       :is-disabled="isDisabled"
       :is-active="isActive"
       :is-indeterminate="isIndeterminate"
-      :is-valid="isValid"
-      :is-invalid="isInvalid"
+      :is-success="isSuccess"
+      :is-error="isError"
     >
       {{ isActive ? '☑' : '□' }}
     </slot>

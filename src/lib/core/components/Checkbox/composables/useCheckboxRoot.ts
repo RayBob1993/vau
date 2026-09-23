@@ -41,24 +41,17 @@ export function useCheckboxRoot (options: UseCheckboxRootOptions) {
 
   const isIndeterminate = computed<boolean>(() => Boolean(props.value?.indeterminate));
 
-  onMounted(() => {
-    options.formItemContext?.registerField({
-      /**
-       * Для групп чекбоксов disabled отдельной опции не должен отключать валидацию всего FormItem.
-       * Исключение из валидации — через disabled на FormItem/Form или на единственном boolean-чекбоксе.
-       */
-      isDisabled: () => {
-        if (Array.isArray(modelValue.value)) {
-          return false;
-        }
+  let unregisterField: Maybe<VoidFunction>;
 
-        return Boolean(props.value?.disabled);
-      }
+  onMounted(() => {
+    /* Поле disabled, только если disabled все чекбоксы группы — агрегирует FormItem. */
+    unregisterField = options.formItemContext?.registerField({
+      isDisabled: () => Boolean(props.value.disabled)
     });
   });
 
   onUnmounted(() => {
-    options.formItemContext?.unregisterField();
+    unregisterField?.();
   });
 
   return {

@@ -20,7 +20,7 @@
     required: true
   });
 
-  const { formRootContext, formItemContext, isValid, isInvalid } = useFormContext();
+  const { formRootContext, formItemContext, isSuccess, isError } = useFormContext();
 
   const { isDisabled, isTextarea, hasValue, isFocus, setFocus, setModelValue, clear } = useInputRoot({
     formRootContext,
@@ -56,8 +56,8 @@
       'input--filled': hasValue,
       'input--disabled': isDisabled,
       'input--loading': loading,
-      'input--invalid': isInvalid,
-      'input--valid': isValid,
+      'input--invalid': isError,
+      'input--valid': isSuccess,
       [`input--theme-${theme}`]: theme,
       [`input--size-${size}`]: size,
       [`input--size-xs-${sizeXs}`]: sizeXs,
@@ -73,8 +73,8 @@
       :is-focus="isFocus"
       :has-value="hasValue"
       :loading="Boolean(loading)"
-      :is-invalid="isInvalid"
-      :is-valid="isValid"
+      :is-error="isError"
+      :is-success="isSuccess"
     />
   </div>
 </template>

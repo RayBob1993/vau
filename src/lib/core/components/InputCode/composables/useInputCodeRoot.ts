@@ -1,4 +1,4 @@
-import type { MaybeNull } from '../../../types';
+import type { Maybe, MaybeNull } from '../../../types';
 import type { FormRootContext, FormItemContext } from '../../Form';
 import type { InputCodeModelValue, InputCodeProps } from '../types';
 import { computed, type MaybeRefOrGetter, onMounted, onUnmounted, toValue } from 'vue';
@@ -22,14 +22,16 @@ export function useInputCodeRoot (options: UseInputCodeRootOptions) {
     );
   });
 
+  let unregisterField: Maybe<VoidFunction>;
+
   onMounted(() => {
-    options.formItemContext?.registerField({
-      isDisabled: () => Boolean(props.value?.disabled)
+    unregisterField = options.formItemContext?.registerField({
+      isDisabled: () => Boolean(props.value.disabled)
     });
   });
 
   onUnmounted(() => {
-    options.formItemContext?.unregisterField();
+    unregisterField?.();
   });
 
   return {

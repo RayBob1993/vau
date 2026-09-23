@@ -13,7 +13,7 @@
     required: true,
   });
 
-  const { formRootContext, formItemContext, isValid, isInvalid } = useFormContext();
+  const { formRootContext, formItemContext, isSuccess, isError } = useFormContext();
 
   const { isDisabled } = useInputTagsRoot({
     formRootContext,
@@ -37,8 +37,8 @@
     class="input-tags"
     :class="{
       'input-tags--disabled': isDisabled,
-      'input-tags--invalid': isInvalid,
-      'input-tags--valid': isValid
+      'input-tags--invalid': isError,
+      'input-tags--valid': isSuccess
     }"
   >
     <slot/>

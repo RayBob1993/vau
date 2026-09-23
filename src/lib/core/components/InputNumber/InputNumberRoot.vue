@@ -16,7 +16,7 @@
     default: INPUT_NUMBER_VALUE_DEFAULT
   });
 
-  const { formRootContext, formItemContext, isValid, isInvalid } = useFormContext();
+  const { formRootContext, formItemContext, isSuccess, isError } = useFormContext();
 
   const {
     step,
@@ -60,8 +60,8 @@
     class="input-number"
     :class="{
       [`input-number--direction-${direction}`]: direction,
-      'input-number--invalid': isInvalid,
-      'input-number--valid': isValid
+      'input-number--invalid': isError,
+      'input-number--valid': isSuccess
     }"
   >
     <slot/>

@@ -13,7 +13,7 @@
     required: true
   });
 
-  const { formRootContext, formItemContext, isValid, isInvalid } = useFormContext();
+  const { formRootContext, formItemContext, isSuccess, isError } = useFormContext();
 
   const {
     activeOption,
@@ -65,8 +65,8 @@
       'select--disabled': isDisabled,
       'select--open': isOpen,
       'select--filled': hasValue,
-      'select--invalid': isInvalid,
-      'select--valid': isValid
+      'select--invalid': isError,
+      'select--valid': isSuccess
     }"
     :aria-disabled="isDisabled"
   >

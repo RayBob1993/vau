@@ -13,7 +13,7 @@
     required: true
   });
 
-  const { formRootContext, formItemContext, isValid, isInvalid } = useFormContext();
+  const { formRootContext, formItemContext, isSuccess, isError } = useFormContext();
 
   const { isActive, isDisabled } = useRadioRoot({
     formRootContext,
@@ -30,8 +30,8 @@
     modelValue: () => modelValue.value,
     isActive: () => isActive.value,
     isDisabled: () => isDisabled.value,
-    isValid: () => isValid.value,
-    isInvalid: () => isInvalid.value
+    isSuccess: () => isSuccess.value,
+    isError: () => isError.value
   });
 </script>
 
@@ -41,8 +41,8 @@
     :class="{
       'radio--disabled': isDisabled,
       'radio--active': isActive,
-      'radio--invalid': isInvalid,
-      'radio--valid': isValid
+      'radio--invalid': isError,
+      'radio--valid': isSuccess
     }"
   >
     <input

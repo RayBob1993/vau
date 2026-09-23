@@ -11,7 +11,7 @@
     required: true,
   });
 
-  const { formRootContext, formItemContext, isValid, isInvalid } = useFormContext();
+  const { formRootContext, formItemContext, isSuccess, isError } = useFormContext();
 
   const { isDisabled, isActive } = useSwitchRoot({
     formRootContext,
@@ -27,8 +27,8 @@
     props: () => props,
     isActive: () => isActive.value,
     isDisabled: () => isDisabled.value,
-    isValid: () => isValid.value,
-    isInvalid: () => isInvalid.value
+    isSuccess: () => isSuccess.value,
+    isError: () => isError.value
   });
 </script>
 

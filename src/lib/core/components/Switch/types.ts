@@ -11,6 +11,6 @@ export interface SwitchRootContext {
   props: MaybeRefOrGetter<SwitchProps>;
   isActive: MaybeRefOrGetter<SwitchModelValue>;
   isDisabled: MaybeRefOrGetter<boolean>;
-  isValid: MaybeRefOrGetter<boolean>;
-  isInvalid: MaybeRefOrGetter<boolean>;
+  isSuccess: MaybeRefOrGetter<boolean>;
+  isError: MaybeRefOrGetter<boolean>;
 }

@@ -9,13 +9,13 @@ export interface UseSwitchIndicatorOptions {
 export function useSwitchIndicator (options: UseSwitchIndicatorOptions) {
   const isDisabled = computed<boolean>(() => Boolean(toValue(options.switchRootContext?.isDisabled)));
   const isActive = computed<boolean>(() => Boolean(toValue(options.switchRootContext?.isActive)));
-  const isValid = computed<boolean>(() => Boolean(toValue(options.switchRootContext?.isValid)));
-  const isInvalid = computed<boolean>(() => Boolean(toValue(options.switchRootContext?.isInvalid)));
+  const isSuccess = computed<boolean>(() => Boolean(toValue(options.switchRootContext?.isSuccess)));
+  const isError = computed<boolean>(() => Boolean(toValue(options.switchRootContext?.isError)));
 
   return {
     isDisabled,
     isActive,
-    isValid,
-    isInvalid
+    isSuccess,
+    isError
   };
 }

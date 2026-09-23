@@ -2,8 +2,10 @@ import { isNull } from './isNull';
 import { isObject } from './isObject';
 
 /**
- * Глубокое сравнение значений (примитивы, массивы, plain-объекты).
- * Для form-model достаточно; функции и экзотические типы сравниваются по ссылке / JSON.
+ * Глубокое сравнение значений: примитивы, Date, массивы, plain-объекты.
+ *
+ * Объекты сравниваются по набору ключей и значениям, порядок ключей не важен,
+ * `{ a: undefined }` и `{}` — разные. Функции и прочие экзотические типы — по ссылке.
  */
 export function isEqual (a: unknown, b: unknown): boolean {
   if (Object.is(a, b)) {
@@ -12,6 +14,10 @@ export function isEqual (a: unknown, b: unknown): boolean {
 
   if (isNull(a) || isNull(b)) {
     return false;
+  }
+
+  if (a instanceof Date && b instanceof Date) {
+    return a.getTime() === b.getTime();
   }
 
   if (Array.isArray(a) && Array.isArray(b)) {
@@ -26,9 +32,12 @@ export function isEqual (a: unknown, b: unknown): boolean {
     return false;
   }
 
-  try {
-    return JSON.stringify(a) === JSON.stringify(b);
-  } catch {
+  const keysA = Object.keys(a);
+  const keysB = Object.keys(b);
+
+  if (keysA.length !== keysB.length) {
     return false;
   }
+
+  return keysA.every(key => Object.hasOwn(b, key) && isEqual(a[key], b[key]));
 }

@@ -16,7 +16,7 @@
 
   const {
     isValid,
-    showAsInvalid,
+    hasErrors,
     isDirty,
     isPristine,
     isChanged,
@@ -25,31 +25,29 @@
     registerFormItem,
     unregisterFormItem,
     initialModel,
+    isResetting,
     validate,
+    submit,
     clearValidate,
-    reset
+    reset,
+    commit
   } = useFormRoot<MODEL>({
     modelValue: () => modelValue.value,
     onUpdateModelValue: value => {
       modelValue.value = value;
     },
+    disabled: () => props.disabled,
     scrollToError: () => props.scrollToError,
     onValid: () => {
       emit('valid');
     },
     onInvalid: () => {
       emit('invalid');
+    },
+    onSubmit: payload => {
+      emit('submit', payload);
     }
   });
-
-  async function handleSubmit () {
-    const isValidResult = await validate();
-
-    emit('submit', {
-      isValid: isValidResult,
-      reset
-    });
-  }
 
   const scopedSlot = computed(() => ({
     isValid: isValid.value,
@@ -64,6 +62,7 @@
     props,
     modelValue,
     initialModel,
+    isResetting,
     registerFormItem,
     unregisterFormItem
   });
@@ -76,22 +75,25 @@
     isValidating,
     canSubmit,
     validate,
+    submit,
     clearValidate,
-    reset
+    reset,
+    commit
   });
 </script>
 
 <template>
   <form
     class="form"
+    novalidate
     :class="{
       'form--disabled': disabled,
       'form--dirty': isDirty,
       'form--changed': isChanged,
       'form--validating': isValidating,
-      'form--invalid': showAsInvalid
+      'form--invalid': hasErrors
     }"
-    @submit.prevent="handleSubmit"
+    @submit.prevent="submit"
   >
     <slot v-bind="scopedSlot"/>
   </form>

@@ -22,6 +22,8 @@ describe('Form', () => {
 
     expect(wrapper.exists()).toBeTruthy();
     expect(wrapper.get('form.form').find('.form-content').text()).toBe('Контент');
+    /* Валидация своя — нативная не должна перехватывать submit */
+    expect(wrapper.get('form').attributes('novalidate')).toBeDefined();
   });
 
   it('Предоставляет API FormInstance через ref', () => {
@@ -44,8 +46,10 @@ describe('Form', () => {
 
     expect(formRef.value).not.toBeNull();
     expect(formRef.value?.validate).toBeTypeOf('function');
+    expect(formRef.value?.submit).toBeTypeOf('function');
     expect(formRef.value?.clearValidate).toBeTypeOf('function');
     expect(formRef.value?.reset).toBeTypeOf('function');
+    expect(formRef.value?.commit).toBeTypeOf('function');
     expect(formRef.value?.isValid).toBeTypeOf('boolean');
     expect(formRef.value?.isDirty).toBeTypeOf('boolean');
     expect(formRef.value?.isPristine).toBeTypeOf('boolean');

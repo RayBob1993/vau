@@ -7,7 +7,7 @@
 
   const RadioRootContext = useRadioRootContext();
 
-  const { isDisabled, isActive, isValid, isInvalid } = useRadioIndicator({
+  const { isDisabled, isActive, isSuccess, isError } = useRadioIndicator({
     radioRootContext: RadioRootContext,
   });
 </script>
@@ -18,15 +18,15 @@
     :class="{
       'radio-indicator--disabled': isDisabled,
       'radio-indicator--active': isActive,
-      'radio-indicator--valid': isValid,
-      'radio-indicator--invalid': isInvalid
+      'radio-indicator--valid': isSuccess,
+      'radio-indicator--invalid': isError
     }"
   >
     <slot
       :is-disabled="isDisabled"
       :is-active="isActive"
-      :is-valid="isValid"
-      :is-invalid="isInvalid"
+      :is-success="isSuccess"
+      :is-error="isError"
     >
       {{ isActive ? '◉' : '⭘' }}
     </slot>
