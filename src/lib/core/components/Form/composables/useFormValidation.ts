@@ -13,6 +13,10 @@ export function useFormValidation (options: UseFormValidationOptions) {
 
   const validatableFormItems = computed<Array<FormItemInstance>>(() => formItems.value.filter(formItem => formItem.isValidatable));
 
+  const hasErrors = computed<boolean>(() => validatableFormItems.value.some(item => item.validationStatus.isError));
+
+  const isValidating = computed<boolean>(() => validatableFormItems.value.some(item => item.validationStatus.isValidating));
+
   /**
    * Агрегация validate полей: колбэки onValid/onInvalid — только у последнего
    * и только «громкого» прогона (silent нужен для isValid и не должен эмитить события).
@@ -55,6 +59,8 @@ export function useFormValidation (options: UseFormValidationOptions) {
 
   return {
     validatableFormItems,
+    hasErrors,
+    isValidating,
     validate,
     clearValidate
   };

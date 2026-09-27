@@ -1,8 +1,16 @@
 import type { FormItemInstance } from '../types';
-import { shallowRef } from 'vue';
+import { computed, shallowRef } from 'vue';
 
 export function useFormItems () {
   const formItems = shallowRef<Array<FormItemInstance>>([]);
+
+  const namedFormItems = computed<Array<FormItemInstance>>(() => formItems.value.filter(item => Boolean(item.props.name)));
+
+  const isDirty = computed<boolean>(() => namedFormItems.value.some(item => item.isDirty));
+
+  const isPristine = computed<boolean>(() => namedFormItems.value.every(item => item.isPristine));
+
+  const isChanged = computed<boolean>(() => namedFormItems.value.some(item => item.isChanged));
 
   function warnDuplicateName (newFormItem: FormItemInstance) {
     if (!import.meta.env.DEV) {
@@ -50,6 +58,9 @@ export function useFormItems () {
 
   return {
     formItems,
+    isDirty,
+    isPristine,
+    isChanged,
     registerFormItem,
     unregisterFormItem
   };

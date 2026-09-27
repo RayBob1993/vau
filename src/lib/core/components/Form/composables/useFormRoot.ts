@@ -1,4 +1,4 @@
-import type { FormItemInstance, FormModel, FormRootValidationResult, FormSubmitEvent } from '../types';
+import type { FormModel, FormRootValidationResult, FormSubmitEvent } from '../types';
 import type { Maybe } from '../../../types';
 import { useFormItems } from './useFormItems';
 import { useFormValidation } from './useFormValidation';
@@ -18,8 +18,8 @@ export interface UseFormRootOptions <MODEL extends FormModel> {
 }
 
 export function useFormRoot <MODEL extends FormModel> (options: UseFormRootOptions<MODEL>) {
-  const { formItems, registerFormItem, unregisterFormItem } = useFormItems();
-  const { validate: validateForm, clearValidate, validatableFormItems } = useFormValidation({
+  const { formItems, isDirty, isPristine, isChanged, registerFormItem, unregisterFormItem } = useFormItems();
+  const { validate: validateForm, clearValidate, validatableFormItems, hasErrors, isValidating } = useFormValidation({
     formItems: () => formItems.value,
     onValid: () => {
       options.onValid?.();
@@ -50,8 +50,6 @@ export function useFormRoot <MODEL extends FormModel> (options: UseFormRootOptio
    */
   const [isResetting, setIsResetting] = useToggle();
 
-  const namedFormItems = computed<Array<FormItemInstance>>(() => formItems.value.filter(item => Boolean(item.props.name)));
-
   const isValid = computed<boolean>(() => {
     if (!isRegistryReady.value) {
       return false;
@@ -65,16 +63,6 @@ export function useFormRoot <MODEL extends FormModel> (options: UseFormRootOptio
 
     return items.every(item => item.isFieldValid);
   });
-
-  const hasErrors = computed<boolean>(() => validatableFormItems.value.some(item => item.validationStatus.isError));
-
-  const isDirty = computed<boolean>(() => namedFormItems.value.some(item => item.isDirty));
-
-  const isPristine = computed<boolean>(() => namedFormItems.value.every(item => item.isPristine));
-
-  const isChanged = computed<boolean>(() => namedFormItems.value.some(item => item.isChanged));
-
-  const isValidating = computed<boolean>(() => validatableFormItems.value.some(item => item.validationStatus.isValidating));
 
   const isDisabled = computed<boolean>(() => Boolean(toValue(options.disabled)));
 
