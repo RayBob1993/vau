@@ -1,4 +1,4 @@
-import { Form, type FormInstance, type FormItemInstance } from '../index';
+import { Form, useForm } from '../index';
 import { defineFormRules } from '../../../utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
@@ -29,30 +29,21 @@ async function settle () {
 
 function mountForm (initial: Model = { name: 'Иван', email: 'ivan@example.com' }) {
   const model = ref<Model>({ ...initial });
-  const formRef = ref<FormInstance | null>(null);
-  const nameRef = ref<FormItemInstance | null>(null);
 
-  const rules = defineFormRules<Model>({
-    name: z.string().nonempty(),
-    email: z.email()
+  const form = useForm<Model>({
+    model,
+    rules: defineFormRules<Model>({
+      name: z.string().nonempty(),
+      email: z.email()
+    })
   });
 
   const wrapper = mount(() => (
-    <Form.Root
-      ref={formRef}
-      modelValue={model.value}
-      rules={rules}
-      onUpdate:modelValue={value => {
-        model.value = value;
-      }}
-    >
-      <Form.Item
-        ref={nameRef}
-        name="name"
-      >
+    <Form.Root form={form}>
+      <Form.Item field={form.field('name')}>
         <input/>
       </Form.Item>
-      <Form.Item name="email">
+      <Form.Item field={form.field('email')}>
         <input/>
       </Form.Item>
     </Form.Root>
@@ -61,8 +52,8 @@ function mountForm (initial: Model = { name: 'Иван', email: 'ivan@example.co
   return {
     wrapper,
     model,
-    form: () => formRef.value!,
-    nameItem: () => nameRef.value!
+    form,
+    nameItem: form.field('name')
   };
 }
 
@@ -80,13 +71,13 @@ describe('Form meta', () => {
 
     await settle();
 
-    expect(form().isPristine).toBe(true);
-    expect(form().isDirty).toBe(false);
-    expect(form().isChanged).toBe(false);
-    expect(form().isValid).toBe(true);
-    expect(form().canSubmit).toBe(false);
-    expect(nameItem().isChanged).toBe(false);
-    expect(nameItem().validationStatus.isError).toBe(false);
+    expect(form.isPristine).toBe(true);
+    expect(form.isDirty).toBe(false);
+    expect(form.isChanged).toBe(false);
+    expect(form.isValid).toBe(true);
+    expect(form.canSubmit).toBe(false);
+    expect(nameItem.isChanged).toBe(false);
+    expect(nameItem.validationStatus.isError).toBe(false);
   });
 
   it('isDirty липкий, isChanged сравнивает с initial', async () => {
@@ -97,18 +88,18 @@ describe('Form meta', () => {
     model.value.name = 'Пётр';
     await flush();
 
-    expect(form().isDirty).toBe(true);
-    expect(form().isPristine).toBe(false);
-    expect(form().isChanged).toBe(true);
-    expect(nameItem().isDirty).toBe(true);
-    expect(nameItem().isChanged).toBe(true);
+    expect(form.isDirty).toBe(true);
+    expect(form.isPristine).toBe(false);
+    expect(form.isChanged).toBe(true);
+    expect(nameItem.isDirty).toBe(true);
+    expect(nameItem.isChanged).toBe(true);
 
     model.value.name = 'Иван';
     await flush();
 
-    expect(form().isChanged).toBe(false);
-    expect(nameItem().isChanged).toBe(false);
-    expect(form().isDirty).toBe(true);
+    expect(form.isChanged).toBe(false);
+    expect(nameItem.isChanged).toBe(false);
+    expect(form.isDirty).toBe(true);
   });
 
   it('canSubmit: только валидная и изменённая форма', async () => {
@@ -116,43 +107,38 @@ describe('Form meta', () => {
 
     await settle();
 
-    expect(form().canSubmit).toBe(false);
+    expect(form.canSubmit).toBe(false);
 
     model.value.name = 'Пётр';
     await vi.advanceTimersByTimeAsync(DEBOUNCE);
     await flush();
 
-    expect(form().isValid).toBe(true);
-    expect(form().canSubmit).toBe(true);
+    expect(form.isValid).toBe(true);
+    expect(form.canSubmit).toBe(true);
 
     model.value.name = '';
     await vi.advanceTimersByTimeAsync(DEBOUNCE);
     await flush();
 
-    expect(form().isValid).toBe(false);
-    expect(form().canSubmit).toBe(false);
+    expect(form.isValid).toBe(false);
+    expect(form.canSubmit).toBe(false);
   });
 
   it('canSubmit: false у disabled-формы', async () => {
     const model = ref<Model>({ name: 'Иван', email: 'ivan@example.com' });
     const disabled = ref(false);
-    const formRef = ref<FormInstance | null>(null);
 
-    const rules = defineFormRules<Model>({
-      name: z.string().nonempty()
+    const form = useForm<Model>({
+      model,
+      rules: defineFormRules<Model>({
+        name: z.string().nonempty()
+      }),
+      disabled: () => disabled.value
     });
 
     mount(() => (
-      <Form.Root
-        ref={formRef}
-        modelValue={model.value}
-        rules={rules}
-        disabled={disabled.value}
-        onUpdate:modelValue={value => {
-          model.value = value;
-        }}
-      >
-        <Form.Item name="name">
+      <Form.Root form={form}>
+        <Form.Item field={form.field('name')}>
           <input/>
         </Form.Item>
       </Form.Root>
@@ -164,12 +150,13 @@ describe('Form meta', () => {
     await vi.advanceTimersByTimeAsync(DEBOUNCE);
     await flush();
 
-    expect(formRef.value!.canSubmit).toBe(true);
+    expect(form.canSubmit).toBe(true);
 
     disabled.value = true;
     await flush();
 
-    expect(formRef.value!.canSubmit).toBe(false);
+    expect(form.isDisabled).toBe(true);
+    expect(form.canSubmit).toBe(false);
   });
 
   it('isValidating: true на время validate()', async () => {
@@ -177,16 +164,16 @@ describe('Form meta', () => {
 
     await settle();
 
-    const promise = form().validate();
+    const promise = form.validate();
 
-    expect(form().isValidating).toBe(true);
-    expect(nameItem().validationStatus.isValidating).toBe(true);
+    expect(form.isValidating).toBe(true);
+    expect(nameItem.validationStatus.isValidating).toBe(true);
 
     await promise;
     await flush();
 
-    expect(form().isValidating).toBe(false);
-    expect(nameItem().validationStatus.isValidating).toBe(false);
+    expect(form.isValidating).toBe(false);
+    expect(nameItem.validationStatus.isValidating).toBe(false);
   });
 
   it('reset(): model к initial, meta сброшены, ошибок нет, форма валидна', async () => {
@@ -198,22 +185,23 @@ describe('Form meta', () => {
     await vi.advanceTimersByTimeAsync(DEBOUNCE);
     await flush();
 
-    expect(nameItem().validationStatus.isError).toBe(true);
-    expect(form().isDirty).toBe(true);
-    expect(form().isValid).toBe(false);
+    expect(nameItem.validationStatus.isError).toBe(true);
+    expect(form.isDirty).toBe(true);
+    expect(form.isValid).toBe(false);
 
-    form().reset();
+    form.reset();
     await settle();
     await vi.advanceTimersByTimeAsync(DEBOUNCE);
     await flush();
 
     expect(model.value.name).toBe('Иван');
-    expect(form().isDirty).toBe(false);
-    expect(form().isPristine).toBe(true);
-    expect(form().isChanged).toBe(false);
-    expect(form().isValid).toBe(true);
-    expect(nameItem().validationStatus.isError).toBe(false);
-    expect(nameItem().isDirty).toBe(false);
+    expect(form.model.name).toBe('Иван');
+    expect(form.isDirty).toBe(false);
+    expect(form.isPristine).toBe(true);
+    expect(form.isChanged).toBe(false);
+    expect(form.isValid).toBe(true);
+    expect(nameItem.validationStatus.isError).toBe(false);
+    expect(nameItem.isDirty).toBe(false);
   });
 
   it('reset() отдаёт копию initial: мутация model не портит снимок', async () => {
@@ -221,13 +209,13 @@ describe('Form meta', () => {
 
     await settle();
 
-    form().reset();
+    form.reset();
     await settle();
 
     model.value.name = 'Пётр';
     await flush();
 
-    form().reset();
+    form.reset();
     await settle();
 
     expect(model.value.name).toBe('Иван');
@@ -242,26 +230,26 @@ describe('Form meta', () => {
     await vi.advanceTimersByTimeAsync(DEBOUNCE);
     await flush();
 
-    expect(form().isChanged).toBe(true);
-    expect(form().canSubmit).toBe(true);
+    expect(form.isChanged).toBe(true);
+    expect(form.canSubmit).toBe(true);
 
-    form().commit();
+    form.commit();
     await settle();
 
     expect(model.value.name).toBe('Пётр');
-    expect(form().isChanged).toBe(false);
-    expect(form().isDirty).toBe(false);
-    expect(form().canSubmit).toBe(false);
-    expect(form().isValid).toBe(true);
+    expect(form.isChanged).toBe(false);
+    expect(form.isDirty).toBe(false);
+    expect(form.canSubmit).toBe(false);
+    expect(form.isValid).toBe(true);
 
     model.value.name = 'Сидор';
     await flush();
 
-    form().reset();
+    form.reset();
     await settle();
 
     expect(model.value.name).toBe('Пётр');
-    expect(form().isChanged).toBe(false);
+    expect(form.isChanged).toBe(false);
   });
 
   it('clearValidate(): убирает UI-статус, isValid не падает', async () => {
@@ -269,22 +257,22 @@ describe('Form meta', () => {
 
     await settle();
 
-    await form().validate();
+    await form.validate();
     await flush();
 
-    expect(nameItem().validationStatus.isSuccess).toBe(true);
-    expect(form().isValid).toBe(true);
+    expect(nameItem.validationStatus.isSuccess).toBe(true);
+    expect(form.isValid).toBe(true);
 
-    form().clearValidate();
+    form.clearValidate();
     await settle();
 
-    expect(nameItem().validationStatus.isSuccess).toBe(false);
-    expect(nameItem().validationStatus.isError).toBe(false);
-    expect(form().isValid).toBe(true);
-    expect(nameItem().isFieldValid).toBe(true);
+    expect(nameItem.validationStatus.isSuccess).toBe(false);
+    expect(nameItem.validationStatus.isError).toBe(false);
+    expect(form.isValid).toBe(true);
+    expect(nameItem.isFieldValid).toBe(true);
   });
 
-  it('FormItem.clearValidateErrors(): скрывает ошибку, логический результат актуален', async () => {
+  it('field.clearValidateErrors(): скрывает ошибку, логический результат актуален', async () => {
     const { form, model, nameItem } = mountForm();
 
     await settle();
@@ -293,41 +281,36 @@ describe('Form meta', () => {
     await vi.advanceTimersByTimeAsync(DEBOUNCE);
     await flush();
 
-    expect(nameItem().validationStatus.isError).toBe(true);
+    expect(nameItem.validationStatus.isError).toBe(true);
 
-    nameItem().clearValidateErrors();
+    nameItem.clearValidateErrors();
     await settle();
 
-    expect(nameItem().validationStatus.isError).toBe(false);
-    expect(nameItem().isFieldValid).toBe(false);
-    expect(form().isValid).toBe(false);
+    expect(nameItem.validationStatus.isError).toBe(false);
+    expect(nameItem.isFieldValid).toBe(false);
+    expect(form.isValid).toBe(false);
   });
 
-  it('valid/invalid: только при громкой валидации', async () => {
+  it('onValid/onInvalid: только при громкой валидации', async () => {
     const model = ref<Model>({ name: 'Иван', email: 'ivan@example.com' });
-    const formRef = ref<FormInstance | null>(null);
     const onFormValid = vi.fn();
     const onFormInvalid = vi.fn();
     const onItemValid = vi.fn();
     const onItemInvalid = vi.fn();
 
-    const rules = defineFormRules<Model>({
-      name: z.string().nonempty()
+    const form = useForm<Model>({
+      model,
+      rules: defineFormRules<Model>({
+        name: z.string().nonempty()
+      }),
+      onValid: onFormValid,
+      onInvalid: onFormInvalid
     });
 
     mount(() => (
-      <Form.Root
-        ref={formRef}
-        modelValue={model.value}
-        rules={rules}
-        onUpdate:modelValue={value => {
-          model.value = value;
-        }}
-        onValid={onFormValid}
-        onInvalid={onFormInvalid}
-      >
+      <Form.Root form={form}>
         <Form.Item
-          name="name"
+          field={form.field('name')}
           onValid={onItemValid}
           onInvalid={onItemInvalid}
         >
@@ -340,13 +323,13 @@ describe('Form meta', () => {
     await settle();
 
     /* clearValidate и reset: silent пересчёт */
-    formRef.value!.clearValidate();
+    form.clearValidate();
     await settle();
-    formRef.value!.reset();
+    form.reset();
     await settle();
 
     /* явный silent */
-    await formRef.value!.validate(true);
+    await form.validate(true);
     await flush();
 
     expect(onFormValid).not.toHaveBeenCalled();
@@ -354,7 +337,7 @@ describe('Form meta', () => {
     expect(onItemValid).not.toHaveBeenCalled();
     expect(onItemInvalid).not.toHaveBeenCalled();
 
-    await formRef.value!.validate();
+    await form.validate();
     await flush();
 
     expect(onFormValid).toHaveBeenCalledTimes(1);
@@ -367,7 +350,7 @@ describe('Form meta', () => {
 
     expect(onItemInvalid).toHaveBeenCalledTimes(1);
 
-    await formRef.value!.validate();
+    await form.validate();
     await flush();
 
     expect(onFormInvalid).toHaveBeenCalledTimes(1);
@@ -380,26 +363,19 @@ describe('Form meta', () => {
     }
 
     const model = ref<TagsModel>({ tags: ['a'] });
-    const formRef = ref<FormInstance | null>(null);
-    const tagsRef = ref<FormItemInstance | null>(null);
 
-    const rules = defineFormRules<TagsModel>({
-      tags: z.array(z.string()).max(1)
+    const form = useForm<TagsModel>({
+      model,
+      rules: defineFormRules<TagsModel>({
+        tags: z.array(z.string()).max(1)
+      })
     });
 
+    const tags = form.field('tags');
+
     mount(() => (
-      <Form.Root
-        ref={formRef}
-        modelValue={model.value}
-        rules={rules}
-        onUpdate:modelValue={value => {
-          model.value = value;
-        }}
-      >
-        <Form.Item
-          ref={tagsRef}
-          name="tags"
-        >
+      <Form.Root form={form}>
+        <Form.Item field={tags}>
           <input/>
         </Form.Item>
       </Form.Root>
@@ -407,55 +383,51 @@ describe('Form meta', () => {
 
     await settle();
 
-    expect(formRef.value!.isChanged).toBe(false);
-    expect(formRef.value!.isValid).toBe(true);
+    expect(form.isChanged).toBe(false);
+    expect(form.isValid).toBe(true);
 
     model.value.tags.push('b');
     await flush();
 
-    expect(tagsRef.value!.isDirty).toBe(true);
-    expect(tagsRef.value!.isChanged).toBe(true);
-    expect(formRef.value!.isChanged).toBe(true);
+    expect(tags.isDirty).toBe(true);
+    expect(tags.isChanged).toBe(true);
+    expect(form.isChanged).toBe(true);
 
     await vi.advanceTimersByTimeAsync(DEBOUNCE);
     await flush();
 
-    expect(tagsRef.value!.validationStatus.isError).toBe(true);
-    expect(formRef.value!.isValid).toBe(false);
+    expect(tags.validationStatus.isError).toBe(true);
+    expect(form.isValid).toBe(false);
 
     model.value.tags.pop();
     await vi.advanceTimersByTimeAsync(DEBOUNCE);
     await flush();
 
-    expect(tagsRef.value!.isChanged).toBe(false);
-    expect(tagsRef.value!.validationStatus.isError).toBe(false);
-    expect(formRef.value!.isValid).toBe(true);
+    expect(tags.isChanged).toBe(false);
+    expect(tags.validationStatus.isError).toBe(false);
+    expect(form.isValid).toBe(true);
 
-    formRef.value!.reset();
+    form.reset();
     await settle();
 
     expect(model.value.tags).toEqual(['a']);
-    expect(tagsRef.value!.isDirty).toBe(false);
+    expect(tags.isDirty).toBe(false);
   });
 
-  it('двойной submit: событие только у последнего прогона и без ложного isValid: false', async () => {
-    const model = ref<Model>({ name: 'Иван', email: 'ivan@example.com' });
+  it('двойной submit: onSubmit только у последнего прогона и без ложного isValid: false', async () => {
     const onSubmit = vi.fn();
 
-    const rules = defineFormRules<Model>({
-      name: z.string().nonempty()
+    const form = useForm<Model>({
+      model: { name: 'Иван', email: 'ivan@example.com' },
+      rules: defineFormRules<Model>({
+        name: z.string().nonempty()
+      }),
+      onSubmit
     });
 
     const wrapper = mount(() => (
-      <Form.Root
-        modelValue={model.value}
-        rules={rules}
-        onUpdate:modelValue={value => {
-          model.value = value;
-        }}
-        onSubmit={onSubmit}
-      >
-        <Form.Item name="name">
+      <Form.Root form={form}>
+        <Form.Item field={form.field('name')}>
           <input/>
         </Form.Item>
       </Form.Root>
@@ -463,10 +435,10 @@ describe('Form meta', () => {
 
     await settle();
 
-    const form = wrapper.get('form');
+    const formEl = wrapper.get('form');
 
-    void form.trigger('submit');
-    void form.trigger('submit');
+    void formEl.trigger('submit');
+    void formEl.trigger('submit');
     await settle();
 
     expect(onSubmit).toHaveBeenCalledTimes(1);
@@ -481,36 +453,29 @@ describe('Form meta', () => {
 
     await settle();
 
-    const [first, second] = await Promise.all([form().validate(), form().validate()]);
+    const [first, second] = await Promise.all([form.validate(), form.validate()]);
 
     expect(first).toBe(true);
     expect(second).toBe(true);
   });
 
-  it('submit(): программный submit равен нативному — громкая валидация и событие', async () => {
+  it('submit(): программный submit равен нативному — громкая валидация и onSubmit', async () => {
     const model = ref<Model>({ name: '', email: 'ivan@example.com' });
-    const formRef = ref<FormInstance | null>(null);
-    const nameRef = ref<FormItemInstance | null>(null);
     const onSubmit = vi.fn();
 
-    const rules = defineFormRules<Model>({
-      name: z.string().nonempty()
+    const form = useForm<Model>({
+      model,
+      rules: defineFormRules<Model>({
+        name: z.string().nonempty()
+      }),
+      onSubmit
     });
 
+    const name = form.field('name');
+
     mount(() => (
-      <Form.Root
-        ref={formRef}
-        modelValue={model.value}
-        rules={rules}
-        onUpdate:modelValue={value => {
-          model.value = value;
-        }}
-        onSubmit={onSubmit}
-      >
-        <Form.Item
-          ref={nameRef}
-          name="name"
-        >
+      <Form.Root form={form}>
+        <Form.Item field={name}>
           <input/>
         </Form.Item>
       </Form.Root>
@@ -518,11 +483,11 @@ describe('Form meta', () => {
 
     await settle();
 
-    await formRef.value!.submit();
+    await form.submit();
     await flush();
 
     expect(onSubmit).toHaveBeenCalledTimes(1);
-    expect(nameRef.value!.validationStatus.isError).toBe(true);
+    expect(name.validationStatus.isError).toBe(true);
 
     const payload = onSubmit.mock.calls[0]?.[0] as { isValid: boolean; reset: unknown; commit: unknown; };
 
@@ -534,26 +499,24 @@ describe('Form meta', () => {
     await vi.advanceTimersByTimeAsync(DEBOUNCE);
     await flush();
 
-    await formRef.value!.submit();
+    await form.submit();
     await flush();
 
     expect(onSubmit).toHaveBeenCalledTimes(2);
     expect((onSubmit.mock.calls[1]?.[0] as { isValid: boolean; }).isValid).toBe(true);
   });
 
-  it('submit: событие получает isValid, reset и commit', async () => {
-    const model = ref<Model>({ name: 'Иван', email: 'ivan@example.com' });
+  it('нативный submit: onSubmit получает isValid, reset и commit', async () => {
     const onSubmit = vi.fn();
 
+    const form = useForm<Model>({
+      model: { name: 'Иван', email: 'ivan@example.com' },
+      onSubmit
+    });
+
     const wrapper = mount(() => (
-      <Form.Root
-        modelValue={model.value}
-        onUpdate:modelValue={value => {
-          model.value = value;
-        }}
-        onSubmit={onSubmit}
-      >
-        <Form.Item name="name">
+      <Form.Root form={form}>
+        <Form.Item field={form.field('name')}>
           <input/>
         </Form.Item>
       </Form.Root>

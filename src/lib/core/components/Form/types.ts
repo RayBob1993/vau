@@ -1,18 +1,25 @@
 import type { ZodError, ZodType } from 'zod';
-import type { ComputedRef, DeepReadonly, MaybeRefOrGetter, ModelRef, Ref, ShallowRef, TemplateRef, VNode } from 'vue';
+import type { ComputedRef, MaybeRefOrGetter, Ref, VNode } from 'vue';
+import type { Maybe, MaybeNull } from '../../types';
 
 export type FormModelValues = unknown;
 
-export type FormModel = Record<string, FormModelValues>;
+/**
+ * Базовое ограничение модели формы. `any` в значениях — намеренно: `Record<string, unknown>`
+ * не принимает `interface Model {}` (нет implicit index signature), а модели пользователей — интерфейсы.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type FormModel = Record<string, any>;
 
 export type FormRules <MODEL> = {
   [K in keyof MODEL]?: ZodType<MODEL[K], MODEL[K]>;
 };
 
-export interface FormProps<MODEL> {
-  rules?: FormRules<MODEL>;
-  disabled?: boolean;
-  scrollToError?: boolean | ScrollIntoViewOptions;
+export type FormFieldName<MODEL extends FormModel = FormModel> = keyof MODEL & string;
+
+export interface FormProps<MODEL extends FormModel = FormModel> {
+  /** Контроллер из `useForm()`: model, rules, состояние и действия формы. */
+  form: FormController<MODEL>;
 }
 
 export interface FormSubmitEvent {
@@ -26,10 +33,6 @@ export interface FormSubmitEvent {
 export interface FormItemEmits {
   valid: [];
   invalid: [];
-}
-
-export interface FormEmits extends FormItemEmits {
-  submit: [payload: FormSubmitEvent];
 }
 
 /** Метаданные «касаемости» и отличия от initial (поле или форма). */
@@ -46,13 +49,8 @@ export interface FormValidityFlags {
   isValid: boolean;
 }
 
-export type FormScopedSlot = FormValidityFlags & FormMetaFlags & {
-  isValidating: boolean;
-  canSubmit: boolean;
-};
-
 export interface FormSlots {
-  default?: (props: FormScopedSlot) => Array<VNode>;
+  default?: () => Array<VNode>;
 }
 
 export type FormValidationResult = Promise<boolean>;
@@ -67,32 +65,67 @@ export interface FormRootValidationResult {
   isLatest: boolean;
 }
 
-export interface FormInstance {
+/** Результат проверки всей model по схеме `rules` — независимо от смонтированных полей. */
+export interface FormModelValidationResult<MODEL extends FormModel = FormModel> {
   isValid: boolean;
-  isDirty: boolean;
-  isPristine: boolean;
-  isChanged: boolean;
-  isValidating: boolean;
-  canSubmit: boolean;
-  validate: (silent?: boolean) => FormValidationResult;
-  /** Программный submit: громкая валидация и событие `submit` — как нативный submit формы. */
-  submit: () => Promise<void>;
-  clearValidate: VoidFunction;
-  reset: VoidFunction;
-  commit: VoidFunction;
+  /** Ошибки по имени поля (в т.ч. для полей, которых сейчас нет в DOM). */
+  errors: Partial<Record<FormFieldName<MODEL>, Array<FormItemError>>>;
 }
 
-export interface FormExpose {
-  isValid: ComputedRef<boolean>;
-  isDirty: ComputedRef<boolean>;
-  isPristine: ComputedRef<boolean>;
-  isChanged: ComputedRef<boolean>;
-  isValidating: ComputedRef<boolean>;
-  canSubmit: ComputedRef<boolean>;
+/**
+ * Типизированная ссылка на поле контроллера: `<Form.Item :field="form.field('email')">`.
+ * Геттеры читают смонтированный FormItem с этим именем; пока его нет — нейтральные значения.
+ */
+export interface FormField<MODEL extends FormModel = FormModel, NAME extends FormFieldName<MODEL> = FormFieldName<MODEL>> extends FormValidityFlags, FormMetaFlags {
+  readonly name: NAME;
+  /** FormItem с этим именем сейчас смонтирован. */
+  readonly isMounted: boolean;
+  /** Участвует в валидации: есть rule и поле не disabled. */
+  readonly isValidatable: boolean;
+  /** Результат последнего parse (в т.ч. silent), без учёта `isValidatable`. */
+  readonly isFieldValid: boolean;
+  readonly isRequired: boolean;
+  readonly validationStatus: FormItemValidationStatus;
+  /** Валидация поля; не смонтировано или невалидируемое — `true`. */
   validate: (silent?: boolean) => FormValidationResult;
+  clearValidateErrors: VoidFunction;
+}
+
+/**
+ * Контроллер формы (`useForm()`): model, rules, состояние и действия — единая точка
+ * работы с формой из script и шаблона, в т.ч. вне `<Form.Root>` (кнопка в футере модалки).
+ * Реактивен: геттеры читают внутренние ref.
+ */
+export interface FormController<MODEL extends FormModel = FormModel> extends FormValidityFlags, FormMetaFlags {
+  model: MODEL;
+  readonly rules: Maybe<FormRules<MODEL>>;
+  /** Смонтирован `Form.Root` (скролл к ошибке, классы хоста). На `isValid` / `canSubmit` не влияет. */
+  readonly isBound: boolean;
+  /** Форма disabled (опция `useForm`). */
+  readonly isDisabled: boolean;
+  /** Хоть одно валидируемое поле показывает ошибку. */
+  readonly hasErrors: boolean;
+  /** Хоть одно поле в процессе validate. */
+  readonly isValidating: boolean;
+  /** `!isDisabled && isValid && isChanged && !isValidating`. */
+  readonly canSubmit: boolean;
+  field: <NAME extends FormFieldName<MODEL>>(name: NAME) => FormField<MODEL, NAME>;
+  /**
+   * Валидировать всю model по `rules`. Смонтированные FormItem обновляют UI.
+   * `silent: true` — без показа ошибок. Результат — схема, не набор смонтированных полей.
+   */
+  validate: (silent?: boolean) => FormValidationResult;
+  /**
+   * То же, что `validate`, плюс словарь ошибок по ключам (в т.ч. без UI).
+   */
+  validateModel: (silent?: boolean) => Promise<FormModelValidationResult<MODEL>>;
+  /** Submit: громкая валидация и `onSubmit` — как нативный submit формы. */
   submit: () => Promise<void>;
+  /** Скрыть статусы и ошибки всех полей; `isValid` пересчитывается тихо. */
   clearValidate: VoidFunction;
+  /** Восстановить model к `initial`, очистить валидацию и meta. */
   reset: VoidFunction;
+  /** Принять текущую model как новый `initial`, очистить валидацию и meta. */
   commit: VoidFunction;
 }
 
@@ -100,11 +133,8 @@ export type FormItemError = ZodError['issues'][number];
 
 export interface FormItemProps {
   disabled?: boolean;
-  /**
-   * Имя поля в model и rules.
-   * Должно быть уникальным среди смонтированных FormItem одной формы.
-   */
-  name?: string;
+  /** Поле контроллера: `form.field('email')`. Без `field` item не участвует в model / валидации. */
+  field?: FormField;
 }
 
 export interface FormItemScopedSlot extends FormValidityFlags, FormMetaFlags {
@@ -147,6 +177,8 @@ export interface FormItemValidationStatus {
 
 export interface FormItemInstance {
   readonly id: string;
+  /** Имя поля из `field.name`. */
+  readonly name: Maybe<string>;
   readonly isValidatable: boolean;
   /**
    * Результат последнего parse поля (в т.ч. silent).
@@ -169,28 +201,31 @@ export interface FormItemInstance {
   resetMeta: VoidFunction;
 }
 
-export interface FormRootContext {
-  props: FormProps<FormModel>;
-  modelValue: ModelRef<FormModel>;
+/**
+ * Контекст формы для FormItem и контролов (provide из `Form.Root`).
+ * Реализуется контроллером; геттеры реактивны.
+ */
+export interface FormRootContext<MODEL extends FormModel = FormModel> {
+  model: MODEL;
+  readonly rules: Maybe<FormRules<MODEL>>;
+  readonly isDisabled: boolean;
   /** Снимок model для reset и isChanged. */
-  initialModel: DeepReadonly<ShallowRef<FormModel | undefined>>;
+  readonly initialModel: Maybe<MODEL>;
   /** Идёт `Form.reset()`: смена value не считается вводом пользователя. */
-  isResetting: Readonly<Ref<boolean>>;
+  readonly isResetting: boolean;
   registerFormItem: (formItem: FormItemInstance) => void;
   unregisterFormItem: (id: string) => void;
 }
 
-export interface FormItemExpose {
-  isValidatable: ComputedRef<boolean>;
-  isFieldValid: Ref<boolean>;
-  isValid: ComputedRef<boolean>;
-  isRequired: ComputedRef<boolean>;
-  isDirty: Ref<boolean>;
-  isPristine: ComputedRef<boolean>;
-  isChanged: ComputedRef<boolean>;
-  validationStatus: Ref<FormItemValidationStatus>;
-  el: TemplateRef<HTMLElement>;
-  validate: (silent?: boolean) => FormValidationResult;
-  clearValidateErrors: VoidFunction;
-  resetMeta: VoidFunction;
+/**
+ * Полный объект контроллера для `Form.Root`: публичный API плюс реестр полей.
+ * Пользователю достаточно `FormController`.
+ */
+export interface FormControllerInternal<MODEL extends FormModel = FormModel> extends FormController<MODEL>, FormRootContext<MODEL> {
+  /** Хост смонтирован (после mount + nextTick). */
+  registerForm: VoidFunction;
+  /** Хост размонтирован. */
+  unregisterForm: VoidFunction;
+  /** Смонтированный FormItem по имени. */
+  getFormItem: (name: string) => MaybeNull<FormItemInstance>;
 }

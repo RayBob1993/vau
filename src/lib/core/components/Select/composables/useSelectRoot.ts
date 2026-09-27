@@ -41,7 +41,7 @@ export function useSelectRoot (options: UseSelectRootOptions) {
 
   const isDisabled = computed<boolean>(() => {
     return Boolean(
-      options.formRootContext?.props.disabled ||
+      options.formRootContext?.isDisabled ||
       options.formItemContext?.props.disabled ||
       props.value?.disabled
     );

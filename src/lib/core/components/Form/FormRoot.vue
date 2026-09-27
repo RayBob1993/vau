@@ -1,84 +1,29 @@
 <script setup lang="ts" generic="MODEL extends FormModel">
-  import type { FormEmits, FormExpose, FormModel, FormProps, FormSlots } from './types';
-  import { useFormRoot } from './composables';
+  import type { FormControllerInternal, FormModel, FormProps, FormSlots } from './types';
   import { FormRootContextKey } from './context';
-  import { computed, provide } from 'vue';
+  import { nextTick, onMounted, onUnmounted, provide } from 'vue';
 
   const props = defineProps<FormProps<MODEL>>();
 
-  const emit = defineEmits<FormEmits>();
-
   defineSlots<FormSlots>();
 
-  const modelValue = defineModel<MODEL>({
-    required: true
+  /**
+   * Хост контроллера: рендерит `<form>`, провайдит контроллер полям,
+   * регистрируется в контроллере на mount. Вся логика формы — в `useForm()`.
+   */
+  const form = props.form as FormControllerInternal<MODEL>;
+
+  provide(FormRootContextKey, form);
+
+  onMounted(async () => {
+    await nextTick();
+
+    /* FormItem к этому моменту зарегистрированы и сами делают silent-parse. */
+    form.registerForm();
   });
 
-  const {
-    isValid,
-    hasErrors,
-    isDirty,
-    isPristine,
-    isChanged,
-    isValidating,
-    canSubmit,
-    registerFormItem,
-    unregisterFormItem,
-    initialModel,
-    isResetting,
-    validate,
-    submit,
-    clearValidate,
-    reset,
-    commit
-  } = useFormRoot<MODEL>({
-    modelValue: () => modelValue.value,
-    onUpdateModelValue: value => {
-      modelValue.value = value;
-    },
-    disabled: () => props.disabled,
-    scrollToError: () => props.scrollToError,
-    onValid: () => {
-      emit('valid');
-    },
-    onInvalid: () => {
-      emit('invalid');
-    },
-    onSubmit: payload => {
-      emit('submit', payload);
-    }
-  });
-
-  const scopedSlot = computed(() => ({
-    isValid: isValid.value,
-    isDirty: isDirty.value,
-    isPristine: isPristine.value,
-    isChanged: isChanged.value,
-    isValidating: isValidating.value,
-    canSubmit: canSubmit.value
-  }));
-
-  provide(FormRootContextKey, {
-    props,
-    modelValue,
-    initialModel,
-    isResetting,
-    registerFormItem,
-    unregisterFormItem
-  });
-
-  defineExpose<FormExpose>({
-    isValid,
-    isDirty,
-    isPristine,
-    isChanged,
-    isValidating,
-    canSubmit,
-    validate,
-    submit,
-    clearValidate,
-    reset,
-    commit
+  onUnmounted(() => {
+    form.unregisterForm();
   });
 </script>
 
@@ -87,14 +32,14 @@
     class="form"
     novalidate
     :class="{
-      'form--disabled': disabled,
-      'form--dirty': isDirty,
-      'form--changed': isChanged,
-      'form--validating': isValidating,
-      'form--invalid': hasErrors
+      'form--disabled': form.isDisabled,
+      'form--dirty': form.isDirty,
+      'form--changed': form.isChanged,
+      'form--validating': form.isValidating,
+      'form--invalid': form.hasErrors
     }"
-    @submit.prevent="submit"
+    @submit.prevent="form.submit()"
   >
-    <slot v-bind="scopedSlot"/>
+    <slot/>
   </form>
 </template>

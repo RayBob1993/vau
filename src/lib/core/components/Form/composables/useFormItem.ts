@@ -25,11 +25,11 @@ export function useFormItem (options: UseFormItemOptions) {
 
   const props = computed<FormItemProps>(() => toValue(options.props));
 
-  const name = computed<Maybe<string>>(() => props.value.name);
+  const name = computed<Maybe<string>>(() => props.value.field?.name);
 
-  const modelValue = computed<Maybe<FormModel>>(() => options.formRootContext?.modelValue.value);
+  const modelValue = computed<Maybe<FormModel>>(() => options.formRootContext?.model);
 
-  const rules = computed<Maybe<FormRules<FormModel>>>(() => options.formRootContext?.props?.rules);
+  const rules = computed<Maybe<FormRules<FormModel>>>(() => options.formRootContext?.rules);
 
   const value = computed<FormModelValues>(() => {
     if (!name.value || !modelValue.value) {
@@ -44,7 +44,7 @@ export function useFormItem (options: UseFormItemOptions) {
       return undefined;
     }
 
-    const initial = options.formRootContext?.initialModel.value;
+    const initial = options.formRootContext?.initialModel;
 
     if (!initial) {
       return undefined;
@@ -58,7 +58,7 @@ export function useFormItem (options: UseFormItemOptions) {
    */
   const isDisabled = computed<boolean>(() => {
     return Boolean(
-      options.formRootContext?.props.disabled ||
+      options.formRootContext?.isDisabled ||
       props.value.disabled ||
       isFieldDisabled.value
     );
@@ -136,7 +136,7 @@ export function useFormItem (options: UseFormItemOptions) {
   });
 
   /**
-   * Невалидируемое поле (disabled, без `name` или без rule) не участвует в валидации
+   * Невалидируемое поле (disabled, без `field` или без rule) не участвует в валидации
    * и не блокирует форму — результат `true`, как и `isValid`.
    */
   async function validate (silent = false): Promise<boolean> {
@@ -187,6 +187,9 @@ export function useFormItem (options: UseFormItemOptions) {
    */
   const instance: FormItemInstance = {
     id,
+    get name () {
+      return name.value;
+    },
     get props () {
       return props.value;
     },
@@ -235,7 +238,7 @@ export function useFormItem (options: UseFormItemOptions) {
 
   watch(value, () => {
     /* Form.reset(): значение вернула форма, а не пользователь — только пересчёт isFieldValid. */
-    if (options.formRootContext?.isResetting.value) {
+    if (options.formRootContext?.isResetting) {
       validateSilent();
 
       return;

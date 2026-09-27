@@ -1,6 +1,6 @@
 import type { FormItemInstance, FormRootValidationResult } from '../types';
 import { takeLatest } from '../../../utils';
-import { computed, onScopeDispose, toValue, type MaybeRefOrGetter } from 'vue';
+import { computed, getCurrentScope, onScopeDispose, toValue, type MaybeRefOrGetter } from 'vue';
 
 export interface UseFormValidationOptions {
   formItems: MaybeRefOrGetter<Array<FormItemInstance>>;
@@ -49,9 +49,12 @@ export function useFormValidation (options: UseFormValidationOptions) {
     formItems.value.forEach(formItem => formItem.clearValidateErrors());
   }
 
-  onScopeDispose(() => {
-    validateLatest.cancel();
-  });
+  /* useForm() может вызываться вне компонента (store, тест) — без активного scope хук не регистрируем. */
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      validateLatest.cancel();
+    });
+  }
 
   return {
     validatableFormItems,

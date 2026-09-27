@@ -1,21 +1,20 @@
 # VForm
 
-Форма с валидацией на **Zod**.
+Форма с валидацией на **Zod**. Состояние, model, rules и действия живут в контроллере `useForm()`. `VForm` / `Form.Root` рендерит нативный `<form>` и провайдит контроллер полям.
 
 ## Базовое использование
 
 ```vue
 <script lang="ts" setup>
   import {
-    type FormSubmitEvent,
     VForm,
     VFormItem,
     VInput,
     VCheckbox,
     VButton,
-    defineFormRules
+    defineFormRules,
+    useForm
   } from 'vau';
-  import { ref } from 'vue';
   import { z } from 'zod';
 
   interface FormModel {
@@ -24,68 +23,63 @@
     policy: boolean;
   }
 
-  const model = ref<FormModel>({
-    name: '',
-    email: '',
-    policy: false
-  });
-
-  const rules = defineFormRules<FormModel>({
-    name: z.string().nonempty({
-      error: 'Поле обязательно для заполнения'
+  const form = useForm<FormModel>({
+    model: {
+      name: '',
+      email: '',
+      policy: false
+    },
+    rules: defineFormRules<FormModel>({
+      name: z.string().nonempty({
+        error: 'Поле обязательно для заполнения'
+      }),
+      email: z.email({
+        error: 'Неверный формат email'
+      }),
+      policy: z.literal(true, {
+        error: 'Необходимо согласие'
+      })
     }),
-    email: z.email({
-      error: 'Неверный формат email'
-    }),
-    policy: z.literal(true, {
-      error: 'Необходимо согласие'
-    })
-  });
-
-  function handleSubmit ({ isValid, reset }: FormSubmitEvent) {
-    if (isValid) {
-      console.log('Валидация прошла успешно');
-      reset(); // форма создания: вернуть пустые начальные данные
-    } else {
-      console.log('Валидация не прошла');
+    scrollToError: true,
+    onSubmit: ({ isValid, reset }) => {
+      if (isValid) {
+        console.log('Валидация прошла успешно');
+        reset();
+      } else {
+        console.log('Валидация не прошла');
+      }
     }
-  }
+  });
 </script>
 
 <template>
-  <v-form
-    v-slot="{ canSubmit }"
-    v-model="model"
-    :rules="rules"
-    scroll-to-error
-    @submit="handleSubmit"
-  >
+  <v-form :form="form">
     <v-form-item
       title="Имя"
-      name="name"
+      :field="form.field('name')"
     >
-      <v-input v-model="model.name"/>
+      <v-input v-model="form.model.name"/>
     </v-form-item>
 
     <v-form-item
       title="Email"
-      name="email"
+      :field="form.field('email')"
     >
       <v-input
-        v-model="model.email"
+        v-model="form.model.email"
         native-type="email"
       />
     </v-form-item>
 
-    <v-form-item name="policy">
-      <v-checkbox v-model="model.policy">
+    <v-form-item :field="form.field('policy')">
+      <v-checkbox v-model="form.model.policy">
         Согласие на обработку данных
       </v-checkbox>
     </v-form-item>
 
     <v-button
       type="submit"
-      :disabled="!canSubmit"
+      :disabled="!form.canSubmit"
     >
       Отправить
     </v-button>
@@ -93,20 +87,35 @@
 </template>
 ```
 
+Кнопка может лежать **вне** `<v-form>` — тот же `form.submit()` / `form.canSubmit`, без `ref` на форму.
+
+```vue
+<v-form :form="form">
+  <!-- поля -->
+</v-form>
+
+<v-button
+  :disabled="!form.canSubmit"
+  @click="form.submit()"
+>
+  Создать
+</v-button>
+```
+
 ## Динамические поля
 
-Валидируются только **смонтированные** FormItem. Поле под `v-if="false"` снимается с регистрации и не влияет на `isValid` / `validate`, даже если в `model` и `rules` ключ остался.
+`form.isValid` смотрит на **всю** model и `rules`, UI не обязателен. `v-if` на `VFormItem` скрывает поле и его ошибки, но значение в model по-прежнему проверяется. Чтобы поле не участвовало в схеме — уберите ключ из `rules` (`computed`).
 
 ```vue
 <script lang="ts" setup>
   import {
-    type FormSubmitEvent,
     VForm,
     VFormItem,
     VInput,
     VCheckbox,
     VButton,
-    defineFormRules
+    defineFormRules,
+    useForm
   } from 'vau';
   import { ref } from 'vue';
   import { z } from 'zod';
@@ -116,43 +125,36 @@
     company: string;
   }
 
-  const model = ref<FormModel>({
-    name: '',
-    company: ''
-  });
+  const isLegalEntity = ref(false);
 
-  const isLegalEntity = ref<boolean>(false);
-
-  const rules = defineFormRules<FormModel>({
-    name: z.string().nonempty({
-      error: 'Поле обязательно для заполнения'
+  const form = useForm<FormModel>({
+    model: {
+      name: '',
+      company: ''
+    },
+    rules: defineFormRules<FormModel>({
+      name: z.string().nonempty({
+        error: 'Поле обязательно для заполнения'
+      }),
+      company: z.string().nonempty({
+        error: 'Укажите название компании'
+      })
     }),
-    company: z.string().nonempty({
-      error: 'Укажите название компании'
-    })
-  });
-
-  function handleSubmit ({ isValid }: FormSubmitEvent) {
-    if (isValid) {
-      console.log('Валидация прошла успешно');
-    } else {
-      console.log('Валидация не прошла');
+    onSubmit: ({ isValid }) => {
+      if (isValid) {
+        console.log('Валидация прошла успешно');
+      }
     }
-  }
+  });
 </script>
 
 <template>
-  <v-form
-    v-slot="{ canSubmit }"
-    v-model="model"
-    :rules="rules"
-    @submit="handleSubmit"
-  >
+  <v-form :form="form">
     <v-form-item
       title="Имя"
-      name="name"
+      :field="form.field('name')"
     >
-      <v-input v-model="model.name"/>
+      <v-input v-model="form.model.name"/>
     </v-form-item>
 
     <v-checkbox v-model="isLegalEntity">
@@ -162,14 +164,14 @@
     <v-form-item
       v-if="isLegalEntity"
       title="Компания"
-      name="company"
+      :field="form.field('company')"
     >
-      <v-input v-model="model.company"/>
+      <v-input v-model="form.model.company"/>
     </v-form-item>
 
     <v-button
       type="submit"
-      :disabled="!canSubmit"
+      :disabled="!form.canSubmit"
     >
       Отправить
     </v-button>
@@ -177,11 +179,11 @@
 </template>
 ```
 
-Пока `isLegalEntity === false`, для кнопки достаточно валидного `name`: правило `company` в `rules` есть, но FormItem не смонтирован. После включения чекбокса `company` снова участвует в валидации.
+Пока `isLegalEntity === false`, `company` в model всё равно проверяется правилом. Чтобы шаг не блокировал submit — не кладите правило, пока чекбокс выключен (`computed` + `defineFormRules`). `form.field('company').isMounted` говорит только о наличии item в DOM.
 
 ## Правила: `defineFormRules` и `computed`
 
-`defineFormRules` оборачивает словарь Zod в `markRaw`: схемы не становятся глубоко реактивными (Proxy ломает Zod и даёт лишний трекинг). Реактивность нужна у `v-model`, а не у самих схем.
+`defineFormRules` оборачивает словарь Zod в `markRaw`: схемы не становятся глубоко реактивными (Proxy ломает Zod и даёт лишний трекинг). Реактивность нужна у model, а не у самих схем.
 
 ### Статический объект
 
@@ -192,9 +194,12 @@ const rules = defineFormRules<FormModel>({
   name: z.string().nonempty({ error: 'Обязательно' }),
   email: z.email({ error: 'Неверный email' })
 });
-```
 
-Ссылка на объект `rules` постоянна. FormItem один раз подхватывает схему при mount и дальше реагирует на изменение **значения** поля.
+const form = useForm<FormModel>({
+  model: { name: '', email: '' },
+  rules
+});
+```
 
 ### `computed` + `defineFormRules`
 
@@ -203,14 +208,17 @@ const rules = defineFormRules<FormModel>({
 ```ts
 const minNameLength = ref(3);
 
-const rules = computed(() =>
-  defineFormRules<FormModel>({
-    name: z.string().min(minNameLength.value, {
-      error: `Минимум ${minNameLength.value} символа`
-    }),
-    email: z.email({ error: 'Неверный email' })
-  })
-);
+const form = useForm<FormModel>({
+  model: { name: '', email: '' },
+  rules: computed(() =>
+    defineFormRules<FormModel>({
+      name: z.string().min(minNameLength.value, {
+        error: `Минимум ${minNameLength.value} символа`
+      }),
+      email: z.email({ error: 'Неверный email' })
+    })
+  )
+});
 ```
 
 При смене зависимостей `computed` возвращает **новый** объект rules → FormItem видит новую Zod-схему и пересчитывает статус:
@@ -222,8 +230,6 @@ const rules = computed(() =>
 
 Без `computed` смена «логики» правил (мутация старого объекта или замена схемы «вручную» без реактивной обёртки) **не** обновит `isFieldValid` и UI: Form следит за сменой ссылки на rule у поля, а не за внутренностями Zod.
 
-Кратко:
-
 | Способ                                     | Когда                                           | Реакция на смену ограничений        |
 |--------------------------------------------|-------------------------------------------------|-------------------------------------|
 | `defineFormRules({ ... })`                 | Фиксированные правила                           | Нет — схема одна на весь срок жизни |
@@ -231,7 +237,7 @@ const rules = computed(() =>
 
 ### Исключение в правиле
 
-Если правило бросило исключение (`throw` в `refine`, отклонённый промис в async-`refine` — например, упал запрос на проверку уникальности), поле считается **невалидным** с одной ошибкой `FORM_RULE_EXCEPTION_MESSAGE` («Не удалось проверить значение»), исходная ошибка уходит в `console.error`. Статусы не зависают: `isValidating` снимается, `validate()` резолвится `false`, событие `submit` приходит с `isValid: false`. Чтобы показать своё сообщение, ловите ошибку внутри `refine`:
+Если правило бросило исключение (`throw` в `refine`, отклонённый промис в async-`refine` — например, упал запрос на проверку уникальности), поле считается **невалидным** с одной ошибкой `FORM_RULE_EXCEPTION_MESSAGE` («Не удалось проверить значение»), исходная ошибка уходит в `console.error`. Статусы не зависают: `isValidating` снимается, `validate()` резолвится `false`, `onSubmit` приходит с `isValid: false`. Чтобы показать своё сообщение, ловите ошибку внутри `refine`:
 
 ```ts
 login: z.string().superRefine(async (value, ctx) => {
@@ -247,59 +253,50 @@ login: z.string().superRefine(async (value, ctx) => {
 
 ## Как устроено
 
-- Каждый `VFormItem` со свойством `name` валидирует **своё** поле: ключ верхнего уровня в `v-model` и в `rules`.
-- `isValid` значение из слота формы — агрегат: все смонтированные валидируемые поля прошли проверку (есть rule и поле не disabled).
-- Поле disabled, если disabled форма, сам `VFormItem` или **все** контролы внутри него: одна выключенная опция группы Radio/Checkbox не снимает валидацию с поля, полностью выключенная группа — снимает.
-- Meta-флаги поля и формы: `isDirty` / `isPristine` / `isChanged` (см. раздел ниже).
+- `useForm()` — единственный источник model, rules, meta и действий.
+- Каждый `VFormItem` с `:field="form.field('email')"` валидирует **своё** поле: ключ верхнего уровня в `form.model` и в `rules`. `field()` типизирован — опечатка в имени не компилируется.
+- `form.isValid` / `form.canSubmit` считает **ядро** по всей model и `rules`, даже без `VForm` / `VFormItem`. Компоненты — только ввод и показ ошибок.
+- Скрытый через `v-if` item не показывает ошибку в UI, но пустое обязательное поле в model по-прежнему роняет `isValid`.
+- Поле disabled, если disabled форма (`useForm({ disabled })`), сам `VFormItem` или **все** контролы внутри него: одна выключенная опция группы Radio/Checkbox не снимает валидацию с поля, полностью выключенная группа — снимает.
 - `rules` можно задавать частично — не для всех ключей model.
-- Значение поля отслеживается глубоко: `model.tags.push(...)` или правка вложенного свойства объекта ставят `isDirty` и запускают валидацию так же, как переприсваивание. Model должна быть реактивной (`ref` / `reactive`).
-- `name` должен быть **уникален** среди смонтированных item одной формы (в DEV при дубле — `console.warn`).
+- Значение поля отслеживается глубоко: `form.model.tags.push(...)` или правка вложенного свойства объекта ставят `isDirty` и запускают валидацию так же, как переприсваивание.
+- `field.name` должен быть **уникален** среди смонтированных item одной формы (в DEV при дубле — `console.warn`).
 - `VFormItem` с `title` показывает заголовок и признак обязательности.
-- Статические `rules` — через `defineFormRules`; динамические ограничения — `computed(() => defineFormRules(...))` (см. раздел выше).
 
 ## Meta: dirty / pristine / changed
 
-Для смонтированных `FormItem` с `name`:
+Для смонтированных `FormItem` с `field`:
 
-| Флаг           | Поле                                                     | Форма                                                       |
-|----------------|----------------------------------------------------------|-------------------------------------------------------------|
-| `isDirty`      | Значение менялось хотя бы раз (липкий до `reset` формы)  | Хотя бы одно поле dirty                                     |
-| `isPristine`   | Значение никогда не меняли (`!isDirty`)                  | Все поля pristine                                           |
-| `isChanged`    | Текущее значение ≠ снимок `initial`                      | Хотя бы одно поле changed                                   |
-| `isValid`      | Логический результат parse (для невалидируемых — `true`) | Агрегат валидируемых полей; до готовности реестра — `false` |
-| `isValidating` | `validationStatus.isValidating`                          | Хотя бы одно поле в процессе validate                       |
-| `canSubmit`    | —                                                        | `!disabled && isValid && isChanged && !isValidating`        |
+| Флаг           | Поле                                                     | Форма (`form.*`)                                                |
+|----------------|----------------------------------------------------------|-----------------------------------------------------------------|
+| `isDirty`      | Значение менялось хотя бы раз (липкий до `reset` формы)  | Хотя бы одно поле dirty                                         |
+| `isPristine`   | Значение никогда не меняли (`!isDirty`)                  | Все поля pristine                                               |
+| `isChanged`    | Текущее значение ≠ снимок `initial`                      | Хотя бы одно поле changed                                       |
+| `isValid`      | Логический результат parse (для невалидируемых — `true`) | Вся model по `rules`, без привязки к DOM                        |
+| `isValidating` | `validationStatus.isValidating`                          | Хотя бы одно поле в процессе validate                           |
+| `canSubmit`    | —                                                        | `!isDisabled && isValid && isChanged && !isValidating`          |
 
-Снимок `initial` берётся один раз — на mount формы. Два метода работают с ним:
+Снимок `initial` берётся один раз — когда `VForm` смонтировался. Два метода работают с ним:
 
-- `reset()` — вернуть model к `initial`, сбросить `isDirty` и UI-статусы валидации. Форма **создания**: после отправки получить чистую форму;
-- `commit()` — принять **текущую** model как новый `initial`: значения остаются, `isChanged` → `false`, `isDirty` сброшен, UI-статусы очищены. Форма **редактирования**: после сохранения не откатывать введённое, а погасить «Сохранить». Также после асинхронной загрузки данных в model (иначе загруженные данные считаются «изменёнными» относительно пустого снимка).
+- `form.reset()` — вернуть model к `initial`, сбросить `isDirty` и UI-статусы валидации. Форма **создания**: после отправки получить чистую форму;
+- `form.commit()` — принять **текущую** model как новый `initial`: значения остаются, `isChanged` → `false`, `isDirty` сброшен, UI-статусы очищены. Форма **редактирования**: после сохранения не откатывать введённое. Также после асинхронной загрузки данных в model.
 
-`reset()` рассчитан на синхронный `v-model` у родителя: значения из снимка не считаются вводом пользователя, пока форма не получила их обратно в том же тике.
+`reset()` рассчитан на синхронное обновление model: значения из снимка не считаются вводом пользователя, пока форма не получила их обратно в том же тике.
 
-Доступ: слот формы / `FormItem`, классы `form--dirty` / `form--changed` / `form-item--dirty` / `form-item--changed`, expose формы. Класс `form--invalid` — UI-статус, как и `form-item--invalid`: ставится, когда хотя бы одно поле **показывает** ошибку после громкой валидации. Логическая невалидность (`isValid === false` после mount или silent-проверки) форму не подсвечивает — для кнопки используйте `isValid` / `canSubmit` из слота.
+Класс `form--invalid` — UI-статус, как и `form-item--invalid`: ставится, когда хотя бы одно поле **показывает** ошибку после громкой валидации. Логическая невалидность форму не подсвечивает — для кнопки используйте `form.isValid` / `form.canSubmit`.
 
 ### Пример: сохранить / сбросить / индикатор изменений
-
-Типичный сценарий редактирования:
-
-- **Сохранить** — `canSubmit` (`!disabled && isValid && isChanged && !isValidating`);
-- **Сбросить** — поле хотя бы раз трогали (`isDirty`);
-- подсказка «есть несохранённые изменения» — по `isChanged` (вернули значение к initial → подсказка пропадает; `isDirty` остаётся `true` до `reset`);
-- спиннер на кнопке — по `isValidating` формы (или `:loading="isValidating"`).
 
 ```vue
 <script lang="ts" setup>
   import {
-    type FormInstance,
-    type FormSubmitEvent,
     VForm,
     VFormItem,
     VInput,
     VButton,
-    defineFormRules
+    defineFormRules,
+    useForm
   } from 'vau';
-  import { ref, useTemplateRef } from 'vue';
   import { z } from 'zod';
 
   interface FormModel {
@@ -307,52 +304,38 @@ login: z.string().superRefine(async (value, ctx) => {
     email: string;
   }
 
-  const model = ref<FormModel>({
-    name: 'Иван',
-    email: 'ivan@example.com'
-  });
-
-  const formRef = useTemplateRef<FormInstance>('formRef');
-
-  const rules = defineFormRules<FormModel>({
-    name: z.string().nonempty({
-      error: 'Укажите имя'
+  const form = useForm<FormModel>({
+    model: {
+      name: 'Иван',
+      email: 'ivan@example.com'
+    },
+    rules: defineFormRules<FormModel>({
+      name: z.string().nonempty({
+        error: 'Укажите имя'
+      }),
+      email: z.email({
+        error: 'Неверный email'
+      })
     }),
-    email: z.email({
-      error: 'Неверный email'
-    })
-  });
+    onSubmit: ({ isValid, commit }) => {
+      if (!isValid) {
+        return;
+      }
 
-  function handleSubmit ({ isValid, commit }: FormSubmitEvent) {
-    if (!isValid) {
-      return;
+      commit();
     }
-
-    // сохранить model на сервер…
-    commit(); // после успеха — текущая model становится initial, meta чистая
-  }
-
-  function handleReset () {
-    formRef.value?.reset();
-  }
+  });
 </script>
 
 <template>
-  <v-form
-    ref="formRef"
-    v-slot="{ canSubmit, isDirty, isChanged, isValidating }"
-    v-model="model"
-    :rules="rules"
-    @submit="handleSubmit"
-  >
+  <v-form :form="form">
     <v-form-item
-      v-slot="{ isChanged: nameChanged }"
       title="Имя"
-      name="name"
+      :field="form.field('name')"
     >
-      <v-input v-model="model.name"/>
+      <v-input v-model="form.model.name"/>
       <span
-        v-if="nameChanged"
+        v-if="form.field('name').isChanged"
         class="hint"
       >
         изменено
@@ -361,30 +344,30 @@ login: z.string().superRefine(async (value, ctx) => {
 
     <v-form-item
       title="Email"
-      name="email"
+      :field="form.field('email')"
     >
       <v-input
-        v-model="model.email"
+        v-model="form.model.email"
         native-type="email"
       />
     </v-form-item>
 
-    <p v-if="isChanged">
+    <p v-if="form.isChanged">
       Есть несохранённые изменения
     </p>
 
     <v-button
       type="submit"
-      :disabled="!canSubmit"
-      :loading="isValidating"
+      :disabled="!form.canSubmit"
+      :loading="form.isValidating"
     >
       Сохранить
     </v-button>
 
     <v-button
       type="button"
-      :disabled="!isDirty"
-      @click="handleReset"
+      :disabled="!form.isDirty"
+      @click="form.reset()"
     >
       Сбросить
     </v-button>
@@ -392,30 +375,21 @@ login: z.string().superRefine(async (value, ctx) => {
 </template>
 ```
 
-Кратко по сценарию:
+### Пример: валидация одного поля
 
-1. Открыли форму → `isPristine`, `!isChanged`; `isValid` зависит от данных.
-2. Изменили имя → `isDirty`, `isChanged`, при валидности `canSubmit`; «Сохранить» активна.
-3. Вернули имя как было → `isDirty` всё ещё `true`, `canSubmit === false` → «Сохранить» снова disabled, подсказка скрыта.
-4. `reset()` → model = initial, `isDirty` сброшен.
-5. Успешный submit с `commit()` → initial = текущая model, `isChanged === false`, «Сохранить» снова disabled до следующих правок.
-
-### Пример: `ref` на FormItem
-
-Слот удобен в шаблоне; `ref` — когда логика в script: проверить одно поле перед запросом, сбросить ошибки поля, прочитать meta без лишнего scope.
+`form.field('email')` — типизированная ссылка на поле: проверить одно поле перед запросом, сбросить ошибки, прочитать meta.
 
 ```vue
 <script lang="ts" setup>
   import {
-    type FormItemInstance,
-    type FormSubmitEvent,
     VForm,
     VFormItem,
     VInput,
     VButton,
-    defineFormRules
+    defineFormRules,
+    useForm
   } from 'vau';
-  import { ref, useTemplateRef } from 'vue';
+  import { ref } from 'vue';
   import { z } from 'zod';
 
   interface FormModel {
@@ -423,31 +397,33 @@ login: z.string().superRefine(async (value, ctx) => {
     code: string;
   }
 
-  const model = ref<FormModel>({
-    email: '',
-    code: ''
-  });
-
-  const emailItemRef = useTemplateRef<FormItemInstance>('emailItemRef');
-
   const isCodeStep = ref(false);
   const isCheckingEmail = ref(false);
 
-  const rules = defineFormRules<FormModel>({
-    email: z.email({
-      error: 'Неверный email'
+  const form = useForm<FormModel>({
+    model: {
+      email: '',
+      code: ''
+    },
+    rules: defineFormRules<FormModel>({
+      email: z.email({
+        error: 'Неверный email'
+      }),
+      code: z.string().length(6, {
+        error: 'Код из 6 символов'
+      })
     }),
-    code: z.string().length(6, {
-      error: 'Код из 6 символов'
-    })
+    onSubmit: ({ isValid }) => {
+      if (isValid) {
+        console.log('вход', form.model);
+      }
+    }
   });
 
-  /**
-   * Валидируем только email, затем свой запрос —
-   * без полного submit формы и без показа ошибок у code.
-   */
+  const email = form.field('email');
+
   async function goToCodeStep () {
-    const emailOk = await emailItemRef.value?.validate();
+    const emailOk = await email.validate();
 
     if (!emailOk) {
       return;
@@ -456,39 +432,21 @@ login: z.string().superRefine(async (value, ctx) => {
     isCheckingEmail.value = true;
 
     try {
-      // await api.sendCode(model.value.email)
       isCodeStep.value = true;
     } finally {
       isCheckingEmail.value = false;
     }
   }
-
-  function backToEmail () {
-    isCodeStep.value = false;
-    // убрать ошибки code, если успели показать
-    // (model.code можно очистить отдельно)
-  }
-
-  function handleSubmit ({ isValid }: FormSubmitEvent) {
-    if (isValid) {
-      console.log('вход', model.value);
-    }
-  }
 </script>
 
 <template>
-  <v-form
-    v-model="model"
-    :rules="rules"
-    @submit="handleSubmit"
-  >
+  <v-form :form="form">
     <v-form-item
-      ref="emailItemRef"
       title="Email"
-      name="email"
+      :field="email"
     >
       <v-input
-        v-model="model.email"
+        v-model="form.model.email"
         native-type="email"
         :disabled="isCodeStep"
       />
@@ -497,9 +455,9 @@ login: z.string().superRefine(async (value, ctx) => {
     <v-form-item
       v-if="isCodeStep"
       title="Код"
-      name="code"
+      :field="form.field('code')"
     >
-      <v-input v-model="model.code"/>
+      <v-input v-model="form.model.code"/>
     </v-form-item>
 
     <v-button
@@ -511,103 +469,85 @@ login: z.string().superRefine(async (value, ctx) => {
       Получить код
     </v-button>
 
-    <template v-else>
-      <v-button
-        type="button"
-        @click="backToEmail"
-      >
-        Назад
-      </v-button>
-      <v-button type="submit">
-        Войти
-      </v-button>
-    </template>
+    <v-button
+      v-else
+      type="submit"
+    >
+      Войти
+    </v-button>
   </v-form>
 </template>
 ```
 
-Через тот же `ref` доступны meta и методы поля: `emailItemRef.value?.isChanged`, `clearValidateErrors()` (скрыть ошибки поля; логический `isValid` при этом пересчитывается, а model сбрасывает только `VForm.reset`).
-
 ## API
+
+### `useForm(options)`
+
+Возвращает реактивный `FormController`. Объект не проксируется Vue: геттеры читают внутренние ref.
+
+#### Опции
+
+| Имя             | Описание                                                                                                                                                       | Тип                                          | Обязательно |
+|-----------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------|-------------|
+| `model`         | Модель. `Ref` — общий с вызывающим; объект — начальное значение, контроллер оборачивает в `ref`                                                                | `Ref<MODEL>` / `MODEL`                       | `true`      |
+| `rules`         | Правила Zod по ключам model (`defineFormRules`); для динамических — `computed` / getter                                                                        | `MaybeRefOrGetter<FormRules<MODEL>>`         | `false`     |
+| `disabled`      | Блокировка формы и полей внутри                                                                                                                                | `MaybeRefOrGetter<boolean>`                  | `false`     |
+| `scrollToError` | После неуспешного `validate` / submit — скролл к первому ошибочному FormItem. `true` — `{ behavior: 'smooth', block: 'center' }`; объект дополняет эти дефолты | `MaybeRefOrGetter<boolean \| ScrollIntoViewOptions>` | `false` |
+| `onSubmit`      | После громкой валидации (нативный submit или `form.submit()`)                                                                                                  | `(payload: FormSubmitEvent) => void`         | `false`     |
+| `onValid`       | Форма прошла громкую валидацию; silent-прогоны не вызывают                                                                                                     | `VoidFunction`                               | `false`     |
+| `onInvalid`     | Форма не прошла громкую валидацию; silent-прогоны не вызывают                                                                                                  | `VoidFunction`                               | `false`     |
+
+#### Контроллер
+
+| Имя              | Описание                                                                                                                                                                                | Тип |
+|------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----|
+| `model`          | Текущая model (get/set)                                                                                                                                                                 | `MODEL` |
+| `rules`          | Актуальные правила                                                                                                                                                                      | `FormRules<MODEL>` |
+| `isBound`        | Смонтирован `VForm` (скролл, классы хоста). На `isValid` / `canSubmit` не влияет                                                                                                        | `boolean` |
+| `isDisabled`     | Форма disabled                                                                                                                                                                          | `boolean` |
+| `isValid`        | Вся model прошла `rules`                                                                                                                                                                | `boolean` |
+| `hasErrors`      | Хотя бы одно валидируемое поле показывает ошибку                                                                                                                                        | `boolean` |
+| `isDirty`        | Хотя бы одно поле с `field` менялось                                                                                                                                                    | `boolean` |
+| `isPristine`     | Ни одно поле с `field` не менялось                                                                                                                                                      | `boolean` |
+| `isChanged`      | Хотя бы одно поле отличается от initial                                                                                                                                                 | `boolean` |
+| `isValidating`   | Хотя бы одно поле в процессе validate                                                                                                                                                   | `boolean` |
+| `canSubmit`      | `!isDisabled && isValid && isChanged && !isValidating`                                                                                                                                  | `boolean` |
+| `field(name)`    | Типизированная ссылка на поле (`isMounted`, meta, `validate`, `clearValidateErrors`)                                                                                                    | `FormField` |
+| `validate`       | Вся model по `rules`; смонтированные item обновляют UI. `silent: true` — без показа ошибок                                                                                               | `(silent?: boolean) => Promise<boolean>` |
+| `validateModel`  | Проверить всю model по `z.object(rules)`, включая несмонтированные поля. Не silent — параллельно громко валидирует смонтированные                                                       | `(silent?: boolean) => Promise<FormModelValidationResult>` |
+| `submit`         | Громкая валидация и `onSubmit` с `{ isValid, reset, commit }`                                                                                                                           | `() => Promise<void>` |
+| `clearValidate`  | Скрыть статусы и сообщения ошибок у всех полей; `isValid` пересчитывается тихо                                                                                                          | `VoidFunction` |
+| `reset`          | Восстановить model к `initial`, очистить валидацию и meta                                                                                                                               | `VoidFunction` |
+| `commit`         | Принять текущую model как новый `initial`, очистить валидацию и meta                                                                                                                    | `VoidFunction` |
+
+`form.field('email')` до монтирования item: `isMounted === false`, `isValid === true`, `validate()` → `true`.
 
 ### VForm
 
-#### Свойства
+Тонкая обёртка: нативный `<form novalidate>`, классы, `provide` контроллера, `@submit.prevent="form.submit()"`.
 
-| Имя             | Описание                                                                                                                                                       | Тип                                | Значения | Значение по умолчанию | Обязательно |
-|-----------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------|----------|-----------------------|-------------|
-| `v-model`       | Модель данных (плоский объект)                                                                                                                                 | `FormModel`                        | —        | —                     | `true`      |
-| `rules`         | Правила Zod по ключам model (`defineFormRules`)                                                                                                                | `FormRules<MODEL>`                 | —        | `undefined`           | `false`     |
-| `disabled`      | Блокировка формы и полей внутри                                                                                                                                | `boolean`                          | —        | `false`               | `false`     |
-| `scrollToError` | После неуспешного `validate` / submit — скролл к первому ошибочному FormItem. `true` — `{ behavior: 'smooth', block: 'center' }`; объект дополняет эти дефолты | `boolean`, `ScrollIntoViewOptions` | —        | `undefined`           | `false`     |
+| Имя    | Описание                         | Тип                     | Обязательно |
+|--------|----------------------------------|-------------------------|-------------|
+| `form` | Контроллер из `useForm()`        | `FormController<MODEL>` | `true`      |
 
-#### Слоты
-
-| Имя       | Описание         | Scope свойства                                                         |
-|-----------|------------------|------------------------------------------------------------------------|
-| `default` | Содержимое формы | `{ isValid, isDirty, isPristine, isChanged, isValidating, canSubmit }` |
-
-#### События
-
-| Имя       | Описание                                                                                                                              | Параметры                                      |
-|-----------|---------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------|
-| `submit`  | Отправка формы (после `validate`). Повторный submit во время прогона делает предыдущий устаревшим — событие получает только последний | `FormSubmitEvent` `{ isValid, reset, commit }` |
-| `valid`   | Форма прошла громкую валидацию (`validate()` / submit); silent-прогоны не эмитят                                                      | —                                              |
-| `invalid` | Форма не прошла громкую валидацию; silent-прогоны не эмитят                                                                           | —                                              |
-
-#### Методы
-
-| Имя             | Описание                                                                                                                                                                                | Параметры          | Возвращаемое значение |
-|-----------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------|-----------------------|
-| `isValid`       | Агрегированный статус валидации (до готовности реестра — `false`)                                                                                                                       | —                  | `boolean`             |
-| `isDirty`       | Хотя бы одно поле с `name` менялось                                                                                                                                                     | —                  | `boolean`             |
-| `isPristine`    | Ни одно поле с `name` не менялось                                                                                                                                                       | —                  | `boolean`             |
-| `isChanged`     | Хотя бы одно поле отличается от initial                                                                                                                                                 | —                  | `boolean`             |
-| `isValidating`  | Хотя бы одно поле в процессе validate                                                                                                                                                   | —                  | `boolean`             |
-| `canSubmit`     | `!disabled && isValid && isChanged && !isValidating` — для кнопки «Сохранить»                                                                                                           | —                  | `boolean`             |
-| `validate`      | Валидировать все валидируемые FormItem. `silent: true` — без показа ошибок в UI. Возвращает честный результат своего прогона; при параллельных вызовах UI и события применяет последний | `silent?: boolean` | `Promise<boolean>`    |
-| `submit`        | Программный submit: громкая валидация и событие `submit` с `{ isValid, reset, commit }` — то же, что кнопка `type="submit"` или Enter. Для кнопки вне `<form>`, хоткея, submit из модалки | —                  | `Promise<void>`       |
-| `clearValidate` | Скрыть статусы и сообщения ошибок у всех полей; `isValid` пересчитывается тихо                                                                                                          | —                  | —                     |
-| `reset`         | Восстановить model к `initial`, очистить валидацию и meta (`isDirty`)                                                                                                                   | —                  | —                     |
-| `commit`        | Принять текущую model как новый `initial`, очистить валидацию и meta                                                                                                                    | —                  | —                     |
+Слот `default` без scope — состояние читается с контроллера.
 
 ### VFormItem
 
-Поле формы: связывается по ключу `name` с model и `rules`. UI-обёртка над `Form.Item` — заголовок (`title`), обязательность и вывод ошибок в footer по умолчанию.
+Поле формы: связывается через `:field`. UI-обёртка над `Form.Item` — заголовок (`title`), обязательность и вывод ошибок в footer по умолчанию.
 
-#### Свойства
+| Имя        | Описание                                                          | Тип         | Обязательно |
+|------------|-------------------------------------------------------------------|-------------|-------------|
+| `field`    | Ссылка `form.field('email')`. Без `field` item не участвует в model / валидации | `FormField` | `false` |
+| `title`    | Текст заголовка поля                                              | `string`    | `false`     |
+| `disabled` | Отключить поле и исключить его из валидации / `isValid` формы     | `boolean`   | `false`     |
 
-| Имя        | Описание                                                                   | Тип       | Значения | Значение по умолчанию | Обязательно |
-|------------|----------------------------------------------------------------------------|-----------|----------|-----------------------|-------------|
-| `name`     | Ключ поля в model и rules (верхний уровень). Уникален в рамках одной формы | `string`  | —        | `undefined`           | `false`     |
-| `title`    | Текст заголовка поля (в header вместе с признаком обязательности)          | `string`  | —        | `undefined`           | `false`     |
-| `disabled` | Отключить поле и исключить его из валидации / `isValid` формы              | `boolean` | —        | `false`               | `false`     |
+Scope слотов: `{ validationStatus, isRequired, errors, isValid, isDirty, isPristine, isChanged }`.
 
-#### Слоты
+| Имя       | Описание                                                                                  |
+|-----------|-------------------------------------------------------------------------------------------|
+| `default` | Контрол поля                                                                              |
+| `header`  | Шапка. Если не передан — при наличии `title` рендерится заголовок и `*` для required      |
+| `footer`  | Подвал. Если не передан — список ошибок валидации (`Form.ItemErrors`)                     |
 
-Scope у всех слотов: `{ validationStatus, isRequired, errors, isValid, isDirty, isPristine, isChanged }`.
-
-| Имя       | Описание                                                                                  | Scope по умолчанию |
-|-----------|-------------------------------------------------------------------------------------------|--------------------|
-| `default` | Контрол поля                                                                              | —                  |
-| `header`  | Шапка поля. Если не передан — при наличии `title` рендерится заголовок и `*` для required | —                  |
-| `footer`  | Подвал поля. Если не передан — список ошибок валидации (`Form.ItemErrors`)                | —                  |
-
-#### События
-
-| Имя       | Описание                                                                        | Параметры |
-|-----------|---------------------------------------------------------------------------------|-----------|
-| `valid`   | Поле прошло громкую валидацию (ввод после debounce, `validate()`); silent — нет | —         |
-| `invalid` | Поле не прошло громкую валидацию; silent — нет                                  | —         |
-
-#### Методы
-
-| Имя                   | Описание                                                                                                                               | Параметры             | Возвращаемое значение      |
-|-----------------------|----------------------------------------------------------------------------------------------------------------------------------------|-----------------------|----------------------------|
-| `isValid`             | Логический результат parse поля (невалидируемое — `true`)                                                                              | —                     | `boolean`                  |
-| `isDirty`             | Значение поля менялось хотя бы раз                                                                                                     | —                     | `boolean`                  |
-| `isPristine`          | Значение поля никогда не меняли                                                                                                        | —                     | `boolean`                  |
-| `isChanged`           | Текущее значение ≠ initial                                                                                                             | —                     | `boolean`                  |
-| `validationStatus`    | UI-статус поля                                                                                                                         | —                     | `FormItemValidationStatus` |
-| `validate`            | Валидировать поле. `silent: true` — без показа ошибок в UI. Невалидируемое поле (disabled / без rule) — всегда `true`, как и `isValid` | `silent?: boolean`    | `Promise<boolean>`         |
-| `clearValidateErrors` | Скрыть статус и сообщения ошибок поля; `isValid` пересчитывается тихо                                                                  | —                     | —                          |
+События `valid` / `invalid` — только после громкой валидации поля.

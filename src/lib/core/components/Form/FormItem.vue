@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import type { FormItemProps, FormItemSlots, FormItemEmits, FormItemExpose, FormItemScopedSlot } from './types';
+  import type { FormItemProps, FormItemSlots, FormItemEmits, FormItemScopedSlot } from './types';
   import { FormItemContextKey, useFormRootContext } from './context';
   import { useFormItem } from './composables';
   import { computed, provide, useTemplateRef } from 'vue';
@@ -18,14 +18,11 @@
     validationStatus,
     isDisabled,
     isRequired,
-    isValidatable,
-    isFieldValid,
     isValid,
     isDirty,
     isPristine,
     isChanged,
     registerField,
-    resetMeta,
     validate,
     clearValidateErrors
   } = useFormItem({
@@ -57,21 +54,6 @@
     isRequired,
     isDisabled,
     registerField,
-    validate,
-    clearValidateErrors
-  });
-
-  defineExpose<FormItemExpose>({
-    el: rootEl,
-    isValidatable,
-    isFieldValid,
-    isRequired,
-    isValid,
-    isDirty,
-    isPristine,
-    isChanged,
-    validationStatus,
-    resetMeta,
     validate,
     clearValidateErrors
   });

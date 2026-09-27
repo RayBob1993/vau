@@ -1,50 +1,13 @@
 <script lang="ts" setup generic="MODEL extends FormModel">
-  import {
-    type FormEmits,
-    type FormExpose,
-    type FormInstance,
-    type FormModel,
-    type FormProps,
-    type FormSlots,
-    Form
-  } from '@vau/core';
-  import { computed, useTemplateRef } from 'vue';
+  import { type FormModel, type FormProps, type FormSlots, Form } from '@vau/core';
 
-  const props = defineProps<FormProps<MODEL>>();
-
-  const emit = defineEmits<FormEmits>();
+  defineProps<FormProps<MODEL>>();
 
   defineSlots<FormSlots>();
-
-  const modelValue = defineModel<MODEL>({
-    required: true
-  });
-
-  const rootRef = useTemplateRef<FormInstance>('rootRef');
-
-  defineExpose<FormExpose>({
-    isValid: computed(() => rootRef.value?.isValid ?? false),
-    isDirty: computed(() => rootRef.value?.isDirty ?? false),
-    isPristine: computed(() => rootRef.value?.isPristine ?? true),
-    isChanged: computed(() => rootRef.value?.isChanged ?? false),
-    isValidating: computed(() => rootRef.value?.isValidating ?? false),
-    canSubmit: computed(() => rootRef.value?.canSubmit ?? false),
-    validate: (silent?: boolean) => rootRef.value?.validate(silent) ?? Promise.resolve(false),
-    submit: () => rootRef.value?.submit() ?? Promise.resolve(),
-    clearValidate: () => rootRef.value?.clearValidate(),
-    reset: () => rootRef.value?.reset(),
-    commit: () => rootRef.value?.commit()
-  });
 </script>
 
 <template>
-  <Form.Root
-    ref="rootRef"
-    v-slot="scope"
-    v-model="modelValue"
-    v-bind="props"
-    v-on="emit"
-  >
-    <slot v-bind="scope"/>
+  <Form.Root :form="form">
+    <slot/>
   </Form.Root>
 </template>

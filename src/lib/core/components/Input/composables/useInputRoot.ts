@@ -20,7 +20,7 @@ export function useInputRoot (options: UseInputRootOptions) {
 
   const isDisabled = computed<boolean>(() => {
     return Boolean(
-      options.formRootContext?.props.disabled ||
+      options.formRootContext?.isDisabled ||
       options.formItemContext?.props.disabled ||
       props.value?.loading ||
       props.value?.disabled

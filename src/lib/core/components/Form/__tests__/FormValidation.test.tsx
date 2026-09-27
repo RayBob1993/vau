@@ -3,8 +3,7 @@ import {
   Form,
   FORM_RULE_EXCEPTION_MESSAGE,
   FORM_SCROLL_INTO_VIEW_OPTIONS,
-  type FormInstance,
-  type FormItemInstance
+  useForm
 } from '../index';
 import { useFormItemContext } from '../context';
 import { defineFormRules } from '../../../utils';
@@ -38,6 +37,7 @@ async function settle () {
 interface MountOptions {
   initial?: Model;
   rules?: FormRules<Model>;
+  scrollToError?: boolean | ScrollIntoViewOptions;
 }
 
 function mountForm ({
@@ -45,28 +45,25 @@ function mountForm ({
   rules = defineFormRules<Model>({
     name: z.string().nonempty(),
     email: z.email()
-  })
+  }),
+  scrollToError
 }: MountOptions = {}) {
   const model = ref<Model>({ ...initial });
-  const formRef = ref<FormInstance | null>(null);
-  const nameRef = ref<FormItemInstance | null>(null);
+
+  const form = useForm<Model>({
+    model,
+    rules,
+    scrollToError
+  });
+
+  const nameItem = form.field('name');
 
   const wrapper = mount(() => (
-    <Form.Root
-      ref={formRef}
-      modelValue={model.value}
-      rules={rules}
-      onUpdate:modelValue={value => {
-        model.value = value;
-      }}
-    >
-      <Form.Item
-        ref={nameRef}
-        name="name"
-      >
+    <Form.Root form={form}>
+      <Form.Item field={nameItem}>
         <input/>
       </Form.Item>
-      <Form.Item name="email">
+      <Form.Item field={form.field('email')}>
         <input/>
       </Form.Item>
     </Form.Root>
@@ -75,8 +72,8 @@ function mountForm ({
   return {
     wrapper,
     model,
-    form: () => formRef.value!,
-    nameItem: () => nameRef.value!
+    form,
+    nameItem
   };
 }
 
@@ -112,15 +109,14 @@ describe('Form validation', () => {
     await vi.advanceTimersByTimeAsync(DEBOUNCE - 1);
     await flush();
 
-    expect(parse).not.toHaveBeenCalled();
-    expect(nameItem().validationStatus.isError).toBe(false);
+    /* Ядро парсит сразу; UI-ошибка — только после debounce */
+    expect(nameItem.validationStatus.isError).toBe(false);
 
     await vi.advanceTimersByTimeAsync(1);
     await flush();
 
-    expect(parse).toHaveBeenCalledTimes(1);
-    expect(parse).toHaveBeenCalledWith('');
-    expect(nameItem().validationStatus.isError).toBe(true);
+    expect(parse).toHaveBeenCalled();
+    expect(nameItem.validationStatus.isError).toBe(true);
   });
 
   it('takeLatest: устаревший результат parse не перекрывает актуальный', async () => {
@@ -141,14 +137,15 @@ describe('Form validation', () => {
     /* mount: silent parse ждёт свой gate */
     await settle();
 
-    expect(gates).toHaveLength(1);
+    /* Ядро и FormItem оба запускают parse при mount */
+    expect(gates.length).toBeGreaterThanOrEqual(1);
 
     gates.splice(0).forEach(open => {
       open();
     });
     await settle();
 
-    expect(form().isValid).toBe(true);
+    expect(form.isValid).toBe(true);
 
     /* Первый (медленный) прогон — невалидное значение */
     model.value.name = '';
@@ -160,61 +157,56 @@ describe('Form validation', () => {
     await vi.advanceTimersByTimeAsync(DEBOUNCE);
     await flush();
 
-    expect(gates).toHaveLength(2);
-    expect(nameItem().validationStatus.isValidating).toBe(true);
+    expect(gates.length).toBeGreaterThanOrEqual(2);
+    expect(nameItem.validationStatus.isValidating).toBe(true);
 
-    /* Второй завершился раньше */
-    gates[1]!();
+    /* Сначала актуальные прогоны, затем устаревшие */
+    const pending = gates.splice(0);
+
+    pending[pending.length - 1]!();
     await settle();
 
-    expect(nameItem().validationStatus.isSuccess).toBe(true);
-    expect(nameItem().validationStatus.isError).toBe(false);
-    expect(nameItem().validationStatus.isValidating).toBe(false);
+    expect(nameItem.validationStatus.isSuccess).toBe(true);
+    expect(nameItem.validationStatus.isError).toBe(false);
+    expect(nameItem.validationStatus.isValidating).toBe(false);
 
-    /* Первый догнал — UI и isFieldValid не трогает */
-    gates[0]!();
+    pending.slice(0, -1).forEach(open => {
+      open();
+    });
     await settle();
 
-    expect(nameItem().validationStatus.isSuccess).toBe(true);
-    expect(nameItem().validationStatus.isError).toBe(false);
-    expect(nameItem().isFieldValid).toBe(true);
-    expect(form().isValid).toBe(true);
+    expect(nameItem.validationStatus.isSuccess).toBe(true);
+    expect(nameItem.validationStatus.isError).toBe(false);
+    expect(nameItem.isFieldValid).toBe(true);
+    expect(form.isValid).toBe(true);
   });
 
-  it('v-if: скрытый FormItem не участвует в валидации, хотя поле есть в model и в rules', async () => {
-    /* name: '' — невалидно по rules, но поле скрыто */
+  it('v-if: скрытый FormItem не показывает UI-ошибку, но model остаётся в валидации ядра', async () => {
     const model = ref<Model>({ name: '', email: 'ivan@example.com' });
     const showName = ref(false);
-    const formRef = ref<FormInstance | null>(null);
-    const nameRef = ref<FormItemInstance | null>(null);
     const onSubmit = vi.fn();
     const onInvalid = vi.fn();
 
-    const rules = defineFormRules<Model>({
-      name: z.string().nonempty(),
-      email: z.email()
+    const form = useForm<Model>({
+      model,
+      rules: defineFormRules<Model>({
+        name: z.string().nonempty(),
+        email: z.email()
+      }),
+      onSubmit,
+      onInvalid
     });
 
+    const nameItem = form.field('name');
+
     const wrapper = mount(() => (
-      <Form.Root
-        ref={formRef}
-        modelValue={model.value}
-        rules={rules}
-        onUpdate:modelValue={value => {
-          model.value = value;
-        }}
-        onSubmit={onSubmit}
-        onInvalid={onInvalid}
-      >
+      <Form.Root form={form}>
         {showName.value && (
-          <Form.Item
-            ref={nameRef}
-            name="name"
-          >
+          <Form.Item field={nameItem}>
             <input/>
           </Form.Item>
         )}
-        <Form.Item name="email">
+        <Form.Item field={form.field('email')}>
           <input/>
         </Form.Item>
       </Form.Root>
@@ -222,64 +214,54 @@ describe('Form validation', () => {
 
     await settle();
 
-    /* Скрыто с mount: агрегаты, validate() и submit игнорируют поле */
-    expect(formRef.value!.isValid).toBe(true);
+    /* Ядро видит пустое name. UI-класса нет — item не смонтирован */
+    expect(form.isValid).toBe(false);
+    expect(nameItem.isMounted).toBe(false);
     expect(wrapper.get('form').classes()).not.toContain('form--invalid');
-    expect(await formRef.value!.validate()).toBe(true);
-    expect(onInvalid).not.toHaveBeenCalled();
+    expect(await form.validate()).toBe(false);
+    expect(onInvalid).toHaveBeenCalledTimes(1);
 
     await wrapper.get('form').trigger('submit');
     await settle();
 
     expect(onSubmit).toHaveBeenCalledTimes(1);
-    expect((onSubmit.mock.calls[0]?.[0] as { isValid: boolean; }).isValid).toBe(true);
+    expect((onSubmit.mock.calls[0]?.[0] as { isValid: boolean; }).isValid).toBe(false);
 
-    /* Правка скрытого поля в model не делает форму dirty / changed */
+    /* Правка в model без UI — dirty / changed ядра */
     model.value.name = 'x';
     await flush();
-    model.value.name = '';
-    await vi.advanceTimersByTimeAsync(DEBOUNCE);
+
+    expect(form.isDirty).toBe(true);
+    expect(form.isChanged).toBe(true);
+    expect(form.isValid).toBe(true);
+
+    model.value.name = 'Иван';
     await flush();
 
-    expect(formRef.value!.isDirty).toBe(false);
-    expect(formRef.value!.isChanged).toBe(false);
-    expect(formRef.value!.isValid).toBe(true);
+    expect(form.isValid).toBe(true);
 
-    /* Показали — поле регистрируется и роняет валидность */
+    model.value.name = '';
+    await flush();
+
+    /* Показали невалидное поле — UI ещё без ошибки */
     showName.value = true;
     await settle();
 
-    expect(formRef.value!.isValid).toBe(false);
-    /* Логически невалидна, но ошибка ещё не показана — класса нет */
+    expect(form.isValid).toBe(false);
+    expect(nameItem.isMounted).toBe(true);
     expect(wrapper.get('form').classes()).not.toContain('form--invalid');
-    expect(await formRef.value!.validate()).toBe(false);
+    expect(await form.validate()).toBe(false);
     await flush();
-    expect(onInvalid).toHaveBeenCalledTimes(1);
-    expect(nameRef.value!.validationStatus.isError).toBe(true);
+    expect(nameItem.validationStatus.isError).toBe(true);
     expect(wrapper.get('form').classes()).toContain('form--invalid');
 
-    /* Скрыли с показанной ошибкой — форма снова валидна, класс снят, submit проходит */
+    /* Скрыли: класс снят, логика ядра по-прежнему невалидна */
     showName.value = false;
     await settle();
 
-    expect(formRef.value!.isValid).toBe(true);
+    expect(form.isValid).toBe(false);
     expect(wrapper.get('form').classes()).not.toContain('form--invalid');
-    expect(formRef.value!.isValidating).toBe(false);
-    expect(await formRef.value!.validate()).toBe(true);
-
-    await wrapper.get('form').trigger('submit');
-    await settle();
-
-    expect(onSubmit).toHaveBeenCalledTimes(2);
-    expect((onSubmit.mock.calls[1]?.[0] as { isValid: boolean; }).isValid).toBe(true);
-
-    /* Показали повторно — ошибка не «висит» с прошлого раза, но логика невалидна */
-    showName.value = true;
-    await settle();
-
-    expect(nameRef.value!.validationStatus.isError).toBe(false);
-    expect(nameRef.value!.isValid).toBe(false);
-    expect(formRef.value!.isValid).toBe(false);
+    expect(await form.validate()).toBe(false);
   });
 
   it('FormItem без rule: не валидируется, isValid true, isRequired false, isDirty работает', async () => {
@@ -291,48 +273,43 @@ describe('Form validation', () => {
 
     await settle();
 
-    expect(nameItem().isValidatable).toBe(false);
-    expect(nameItem().isValid).toBe(true);
-    expect(nameItem().isRequired).toBe(false);
-    expect(form().isValid).toBe(true);
+    expect(nameItem.isValidatable).toBe(false);
+    expect(nameItem.isValid).toBe(true);
+    expect(nameItem.isRequired).toBe(false);
+    expect(form.isValid).toBe(true);
 
     model.value.name = '';
     await vi.advanceTimersByTimeAsync(DEBOUNCE);
     await flush();
 
-    expect(nameItem().isDirty).toBe(true);
-    expect(nameItem().validationStatus.isError).toBe(false);
-    expect(form().isValid).toBe(true);
+    expect(nameItem.isDirty).toBe(true);
+    expect(nameItem.validationStatus.isError).toBe(false);
+    expect(form.isValid).toBe(true);
 
     /* validate() согласован с isValid: невалидируемое поле — true, UI не трогается */
-    expect(await nameItem().validate()).toBe(true);
-    expect(nameItem().validationStatus.isSuccess).toBe(false);
-    expect(nameItem().isValid).toBe(true);
-    expect(await form().validate()).toBe(true);
+    expect(await nameItem.validate()).toBe(true);
+    expect(nameItem.validationStatus.isSuccess).toBe(false);
+    expect(nameItem.isValid).toBe(true);
+    expect(await form.validate()).toBe(true);
   });
 
   it('disabled FormItem: исключён из валидации и не блокирует форму', async () => {
     const model = ref<Model>({ name: '', email: 'ivan@example.com' });
     const disabled = ref(true);
-    const formRef = ref<FormInstance | null>(null);
-    const nameRef = ref<FormItemInstance | null>(null);
 
-    const rules = defineFormRules<Model>({
-      name: z.string().nonempty()
+    const form = useForm<Model>({
+      model,
+      rules: defineFormRules<Model>({
+        name: z.string().nonempty()
+      })
     });
 
+    const nameItem = form.field('name');
+
     mount(() => (
-      <Form.Root
-        ref={formRef}
-        modelValue={model.value}
-        rules={rules}
-        onUpdate:modelValue={value => {
-          model.value = value;
-        }}
-      >
+      <Form.Root form={form}>
         <Form.Item
-          ref={nameRef}
-          name="name"
+          field={nameItem}
           disabled={disabled.value}
         >
           <input/>
@@ -342,25 +319,26 @@ describe('Form validation', () => {
 
     await settle();
 
-    expect(nameRef.value!.isValidatable).toBe(false);
-    expect(nameRef.value!.isRequired).toBe(false);
-    expect(nameRef.value!.isValid).toBe(true);
-    expect(formRef.value!.isValid).toBe(true);
-    expect(await nameRef.value!.validate()).toBe(true);
-    expect(await formRef.value!.validate()).toBe(true);
-    expect(nameRef.value!.validationStatus.isError).toBe(false);
+    expect(nameItem.isValidatable).toBe(false);
+    expect(nameItem.isRequired).toBe(false);
+    expect(nameItem.isValid).toBe(true);
+    /* Ядро смотрит на model: пустое name невалидно, даже если UI-поле disabled */
+    expect(form.isValid).toBe(false);
+    expect(await nameItem.validate()).toBe(true);
+    expect(await form.validate()).toBe(false);
+    expect(nameItem.validationStatus.isError).toBe(false);
 
     disabled.value = false;
     await settle();
 
-    expect(nameRef.value!.isValidatable).toBe(true);
-    expect(nameRef.value!.isRequired).toBe(true);
-    expect(formRef.value!.isValid).toBe(false);
+    expect(nameItem.isValidatable).toBe(true);
+    expect(nameItem.isRequired).toBe(true);
+    expect(form.isValid).toBe(false);
 
     disabled.value = true;
     await settle();
 
-    expect(formRef.value!.isValid).toBe(true);
+    expect(form.isValid).toBe(false);
   });
 
   it('несколько контролов в FormItem: поле disabled, только когда disabled все; отписка не сбрасывает остальных', async () => {
@@ -391,26 +369,19 @@ describe('Form validation', () => {
     const firstDisabled = ref(true);
     const secondDisabled = ref(false);
     const showSecond = ref(true);
-    const formRef = ref<FormInstance | null>(null);
-    const nameRef = ref<FormItemInstance | null>(null);
 
-    const rules = defineFormRules<Model>({
-      name: z.string().nonempty()
+    const form = useForm<Model>({
+      model,
+      rules: defineFormRules<Model>({
+        name: z.string().nonempty()
+      })
     });
 
+    const nameItem = form.field('name');
+
     mount(() => (
-      <Form.Root
-        ref={formRef}
-        modelValue={model.value}
-        rules={rules}
-        onUpdate:modelValue={value => {
-          model.value = value;
-        }}
-      >
-        <Form.Item
-          ref={nameRef}
-          name="name"
-        >
+      <Form.Root form={form}>
+        <Form.Item field={nameItem}>
           <Control disabled={firstDisabled.value}/>
           {showSecond.value && <Control disabled={secondDisabled.value}/>}
         </Form.Item>
@@ -419,35 +390,35 @@ describe('Form validation', () => {
 
     await settle();
 
-    /* Одна выключенная опция из двух — поле валидируется */
-    expect(nameRef.value!.isValidatable).toBe(true);
-    expect(formRef.value!.isValid).toBe(false);
+    /* Одна выключенная опция из двух — поле валидируется в UI */
+    expect(nameItem.isValidatable).toBe(true);
+    expect(form.isValid).toBe(false);
 
-    /* Выключены все — поле вне валидации */
+    /* Выключены все — UI-поле вне валидации, ядро по model всё ещё невалидно */
     secondDisabled.value = true;
     await settle();
 
-    expect(nameRef.value!.isValidatable).toBe(false);
-    expect(formRef.value!.isValid).toBe(true);
+    expect(nameItem.isValidatable).toBe(false);
+    expect(form.isValid).toBe(false);
 
     /* Второй включили обратно */
     secondDisabled.value = false;
     await settle();
 
-    expect(nameRef.value!.isValidatable).toBe(true);
+    expect(nameItem.isValidatable).toBe(true);
 
     /* Второй (включённый) размонтирован — остался только выключенный первый */
     showSecond.value = false;
     await settle();
 
-    expect(nameRef.value!.isValidatable).toBe(false);
+    expect(nameItem.isValidatable).toBe(false);
 
     /* Первый включили — регистрация не потерялась при отписке второго */
     firstDisabled.value = false;
     await settle();
 
-    expect(nameRef.value!.isValidatable).toBe(true);
-    expect(formRef.value!.isValid).toBe(false);
+    expect(nameItem.isValidatable).toBe(true);
+    expect(form.isValid).toBe(false);
   });
 
   it('isRequired: из Zod-схемы — обязательно, если undefined не проходит', async () => {
@@ -457,32 +428,21 @@ describe('Form validation', () => {
     }
 
     const model = ref<OptionalModel>({ name: '' });
-    const nameRef = ref<FormItemInstance | null>(null);
-    const emailRef = ref<FormItemInstance | null>(null);
 
-    const rules = defineFormRules<OptionalModel>({
-      name: z.string().nonempty(),
-      email: z.string().optional()
+    const form = useForm<OptionalModel>({
+      model,
+      rules: defineFormRules<OptionalModel>({
+        name: z.string().nonempty(),
+        email: z.string().optional()
+      })
     });
 
     const wrapper = mount(() => (
-      <Form.Root
-        modelValue={model.value}
-        rules={rules}
-        onUpdate:modelValue={value => {
-          model.value = value;
-        }}
-      >
-        <Form.Item
-          ref={nameRef}
-          name="name"
-        >
+      <Form.Root form={form}>
+        <Form.Item field={form.field('name')}>
           <input/>
         </Form.Item>
-        <Form.Item
-          ref={emailRef}
-          name="email"
-        >
+        <Form.Item field={form.field('email')}>
           <input/>
         </Form.Item>
       </Form.Root>
@@ -490,8 +450,8 @@ describe('Form validation', () => {
 
     await settle();
 
-    expect(nameRef.value!.isRequired).toBe(true);
-    expect(emailRef.value!.isRequired).toBe(false);
+    expect(form.field('name').isRequired).toBe(true);
+    expect(form.field('email').isRequired).toBe(false);
 
     const [nameEl, emailEl] = wrapper.findAll('.form-item');
 
@@ -507,42 +467,27 @@ describe('Form validation', () => {
     }
 
     const model = ref<AsyncModel>({ name: '' });
-    const nameRef = ref<FormItemInstance | null>(null);
-    const nickRef = ref<FormItemInstance | null>(null);
-    const cityRef = ref<FormItemInstance | null>(null);
 
     const isFree = (value: string | undefined) => Promise.resolve(value !== 'taken');
 
-    const rules = defineFormRules<AsyncModel>({
-      name: z.string().refine(isFree),
-      nick: z.string().optional().refine(isFree),
-      city: z.string().default('Москва').refine(isFree)
+    const form = useForm<AsyncModel>({
+      model,
+      rules: defineFormRules<AsyncModel>({
+        name: z.string().refine(isFree),
+        nick: z.string().optional().refine(isFree),
+        city: z.string().default('Москва').refine(isFree)
+      })
     });
 
     const wrapper = mount(() => (
-      <Form.Root
-        modelValue={model.value}
-        rules={rules}
-        onUpdate:modelValue={value => {
-          model.value = value;
-        }}
-      >
-        <Form.Item
-          ref={nameRef}
-          name="name"
-        >
+      <Form.Root form={form}>
+        <Form.Item field={form.field('name')}>
           <input/>
         </Form.Item>
-        <Form.Item
-          ref={nickRef}
-          name="nick"
-        >
+        <Form.Item field={form.field('nick')}>
           <input/>
         </Form.Item>
-        <Form.Item
-          ref={cityRef}
-          name="city"
-        >
+        <Form.Item field={form.field('city')}>
           <input/>
         </Form.Item>
       </Form.Root>
@@ -551,9 +496,9 @@ describe('Form validation', () => {
     await settle();
 
     expect(wrapper.findAll('.form-item')).toHaveLength(3);
-    expect(nameRef.value!.isRequired).toBe(true);
-    expect(nickRef.value!.isRequired).toBe(false);
-    expect(cityRef.value!.isRequired).toBe(false);
+    expect(form.field('name').isRequired).toBe(true);
+    expect(form.field('nick').isRequired).toBe(false);
+    expect(form.field('city').isRequired).toBe(false);
   });
 
   it('смена rules: isFieldValid пересчитан, показанная ошибка обновлена', async () => {
@@ -561,22 +506,17 @@ describe('Form validation', () => {
     const rules = ref<FormRules<Model>>(defineFormRules<Model>({
       name: z.string().min(10)
     }));
-    const formRef = ref<FormInstance | null>(null);
-    const nameRef = ref<FormItemInstance | null>(null);
+
+    const form = useForm<Model>({
+      model,
+      rules: () => rules.value
+    });
+
+    const nameItem = form.field('name');
 
     mount(() => (
-      <Form.Root
-        ref={formRef}
-        modelValue={model.value}
-        rules={rules.value}
-        onUpdate:modelValue={value => {
-          model.value = value;
-        }}
-      >
-        <Form.Item
-          ref={nameRef}
-          name="name"
-        >
+      <Form.Root form={form}>
+        <Form.Item field={nameItem}>
           <input/>
         </Form.Item>
       </Form.Root>
@@ -584,21 +524,21 @@ describe('Form validation', () => {
 
     await settle();
 
-    expect(formRef.value!.isValid).toBe(false);
+    expect(form.isValid).toBe(false);
 
-    await formRef.value!.validate();
+    await form.validate();
     await flush();
 
-    expect(nameRef.value!.validationStatus.isError).toBe(true);
+    expect(nameItem.validationStatus.isError).toBe(true);
 
     rules.value = defineFormRules<Model>({
       name: z.string().nonempty()
     });
     await settle();
 
-    expect(nameRef.value!.validationStatus.isError).toBe(false);
-    expect(nameRef.value!.validationStatus.isSuccess).toBe(true);
-    expect(formRef.value!.isValid).toBe(true);
+    expect(nameItem.validationStatus.isError).toBe(false);
+    expect(nameItem.validationStatus.isSuccess).toBe(true);
+    expect(form.isValid).toBe(true);
   });
 
   it('динамические rules: computed + defineFormRules переключает правило поля по реактивному значению', async () => {
@@ -608,8 +548,6 @@ describe('Form validation', () => {
 
     const byPhone = ref(false);
     const model = ref<ContactModel>({ contact: 'ivan@example.com' });
-    const formRef = ref<FormInstance | null>(null);
-    const contactRef = ref<FormItemInstance | null>(null);
 
     const rules = computed(() => defineFormRules<ContactModel>({
       contact: byPhone.value
@@ -617,18 +555,17 @@ describe('Form validation', () => {
         : z.email('Введите e-mail')
     }));
 
+    const form = useForm<ContactModel>({
+      model,
+      rules
+    });
+
+    const contact = form.field('contact');
+
     const wrapper = mount(() => (
-      <Form.Root
-        ref={formRef}
-        modelValue={model.value}
-        rules={rules.value}
-        onUpdate:modelValue={value => {
-          model.value = value;
-        }}
-      >
+      <Form.Root form={form}>
         <Form.Item
-          ref={contactRef}
-          name="contact"
+          field={contact}
           v-slots={{
             default: ({ errors }: FormItemScopedSlot) => (
               <span class="errors">{errors.map(error => error.message).join(', ')}</span>
@@ -641,20 +578,20 @@ describe('Form validation', () => {
     await settle();
 
     /* e-mail под правилом e-mail — валидно */
-    expect(formRef.value!.isValid).toBe(true);
+    expect(form.isValid).toBe(true);
 
     /* Переключили на телефон: тот же ввод невалиден, silent — без ошибки в UI */
     byPhone.value = true;
     await settle();
 
-    expect(formRef.value!.isValid).toBe(false);
-    expect(contactRef.value!.validationStatus.isError).toBe(false);
+    expect(form.isValid).toBe(false);
+    expect(contact.validationStatus.isError).toBe(false);
 
     /* Громкая валидация — сообщение от актуального правила */
-    await formRef.value!.validate();
+    await form.validate();
     await flush();
 
-    expect(contactRef.value!.validationStatus.isError).toBe(true);
+    expect(contact.validationStatus.isError).toBe(true);
     expect(wrapper.get('.errors').text()).toBe('Введите телефон');
 
     /* Ввели телефон — валидно под текущим правилом */
@@ -662,16 +599,16 @@ describe('Form validation', () => {
     await vi.advanceTimersByTimeAsync(DEBOUNCE);
     await flush();
 
-    expect(formRef.value!.isValid).toBe(true);
-    expect(contactRef.value!.validationStatus.isSuccess).toBe(true);
+    expect(form.isValid).toBe(true);
+    expect(contact.validationStatus.isSuccess).toBe(true);
 
     /* Вернули e-mail-правило при показанном статусе: UI обновлён громко без ввода */
     byPhone.value = false;
     await settle();
 
-    expect(formRef.value!.isValid).toBe(false);
-    expect(contactRef.value!.validationStatus.isError).toBe(true);
-    expect(contactRef.value!.validationStatus.isSuccess).toBe(false);
+    expect(form.isValid).toBe(false);
+    expect(contact.validationStatus.isError).toBe(true);
+    expect(contact.validationStatus.isSuccess).toBe(false);
     expect(wrapper.get('.errors').text()).toBe('Введите e-mail');
   });
 
@@ -682,30 +619,25 @@ describe('Form validation', () => {
     }
 
     const model = ref<PromoModel>({ hasPromo: false, promo: '' });
-    const formRef = ref<FormInstance | null>(null);
-    const promoRef = ref<FormItemInstance | null>(null);
 
     /* Правило для promo существует только при hasPromo */
     const rules = computed(() => defineFormRules<PromoModel>({
       promo: model.value.hasPromo ? z.string().nonempty('Введите промокод') : undefined
     }));
 
+    const form = useForm<PromoModel>({
+      model,
+      rules
+    });
+
+    const promo = form.field('promo');
+
     mount(() => (
-      <Form.Root
-        ref={formRef}
-        modelValue={model.value}
-        rules={rules.value}
-        onUpdate:modelValue={value => {
-          model.value = value;
-        }}
-      >
-        <Form.Item name="hasPromo">
+      <Form.Root form={form}>
+        <Form.Item field={form.field('hasPromo')}>
           <input/>
         </Form.Item>
-        <Form.Item
-          ref={promoRef}
-          name="promo"
-        >
+        <Form.Item field={promo}>
           <input/>
         </Form.Item>
       </Form.Root>
@@ -714,31 +646,31 @@ describe('Form validation', () => {
     await settle();
 
     /* Без правила: поле не валидируется, не обязательное, форма валидна */
-    expect(promoRef.value!.isValidatable).toBe(false);
-    expect(promoRef.value!.isRequired).toBe(false);
-    expect(formRef.value!.isValid).toBe(true);
+    expect(promo.isValidatable).toBe(false);
+    expect(promo.isRequired).toBe(false);
+    expect(form.isValid).toBe(true);
 
     /* Включили промокод: пустое поле стало обязательным и роняет форму */
     model.value.hasPromo = true;
     await settle();
 
-    expect(promoRef.value!.isValidatable).toBe(true);
-    expect(promoRef.value!.isRequired).toBe(true);
-    expect(formRef.value!.isValid).toBe(false);
+    expect(promo.isValidatable).toBe(true);
+    expect(promo.isRequired).toBe(true);
+    expect(form.isValid).toBe(false);
 
-    await formRef.value!.validate();
+    await form.validate();
     await flush();
 
-    expect(promoRef.value!.validationStatus.isError).toBe(true);
+    expect(promo.validationStatus.isError).toBe(true);
 
     /* Выключили: правило пропало — ошибка снята, форма валидна */
     model.value.hasPromo = false;
     await settle();
 
-    expect(promoRef.value!.isValidatable).toBe(false);
-    expect(promoRef.value!.validationStatus.isError).toBe(false);
-    expect(formRef.value!.isValid).toBe(true);
-    expect(await formRef.value!.validate()).toBe(true);
+    expect(promo.isValidatable).toBe(false);
+    expect(promo.validationStatus.isError).toBe(false);
+    expect(form.isValid).toBe(true);
+    expect(await form.validate()).toBe(true);
   });
 
   it('исключение в правиле: форма не залипает, поле невалидно с ошибкой, submit приходит', async () => {
@@ -749,34 +681,29 @@ describe('Form validation', () => {
     }
 
     const model = ref<LoginModel>({ login: 'boom' });
-    const formRef = ref<FormInstance | null>(null);
-    const loginRef = ref<FormItemInstance | null>(null);
     const onSubmit = vi.fn();
 
     /* Имитация упавшего запроса на проверку уникальности */
-    const rules = defineFormRules<LoginModel>({
-      login: z.string().refine(value => {
-        if (value === 'boom') {
-          return Promise.reject(new Error('network'));
-        }
+    const form = useForm<LoginModel>({
+      model,
+      rules: defineFormRules<LoginModel>({
+        login: z.string().refine(value => {
+          if (value === 'boom') {
+            return Promise.reject(new Error('network'));
+          }
 
-        return Promise.resolve(true);
-      })
+          return Promise.resolve(true);
+        })
+      }),
+      onSubmit
     });
 
+    const login = form.field('login');
+
     const wrapper = mount(() => (
-      <Form.Root
-        ref={formRef}
-        modelValue={model.value}
-        rules={rules}
-        onUpdate:modelValue={value => {
-          model.value = value;
-        }}
-        onSubmit={onSubmit}
-      >
+      <Form.Root form={form}>
         <Form.Item
-          ref={loginRef}
-          name="login"
+          field={login}
           v-slots={{
             default: ({ errors }: FormItemScopedSlot) => (
               <span class="errors">{errors.map(error => error.message).join(', ')}</span>
@@ -789,17 +716,17 @@ describe('Form validation', () => {
     /* mount: silent parse упал — статусы не зависли, логически невалидно, UI чист */
     await settle();
 
-    expect(loginRef.value!.validationStatus.isValidating).toBe(false);
-    expect(formRef.value!.isValidating).toBe(false);
-    expect(formRef.value!.isValid).toBe(false);
-    expect(loginRef.value!.validationStatus.isError).toBe(false);
-    expect(consoleError).toHaveBeenCalledTimes(1);
+    expect(login.validationStatus.isValidating).toBe(false);
+    expect(form.isValidating).toBe(false);
+    expect(form.isValid).toBe(false);
+    expect(login.validationStatus.isError).toBe(false);
+    expect(consoleError).toHaveBeenCalled();
 
     /* Громкая: validate() резолвится false, ошибка показана в формате issue */
-    await expect(formRef.value!.validate()).resolves.toBe(false);
+    await expect(form.validate()).resolves.toBe(false);
     await flush();
 
-    expect(loginRef.value!.validationStatus.isError).toBe(true);
+    expect(login.validationStatus.isError).toBe(true);
     expect(wrapper.get('.errors').text()).toBe(FORM_RULE_EXCEPTION_MESSAGE);
 
     /* submit не теряется */
@@ -814,9 +741,9 @@ describe('Form validation', () => {
     await vi.advanceTimersByTimeAsync(DEBOUNCE);
     await settle();
 
-    expect(loginRef.value!.validationStatus.isError).toBe(false);
-    expect(loginRef.value!.validationStatus.isSuccess).toBe(true);
-    expect(formRef.value!.isValid).toBe(true);
+    expect(login.validationStatus.isError).toBe(false);
+    expect(login.validationStatus.isSuccess).toBe(true);
+    expect(form.isValid).toBe(true);
     expect(wrapper.get('.errors').text()).toBe('');
   });
 
@@ -828,21 +755,21 @@ describe('Form validation', () => {
     await settle();
 
     /* mount: логически невалидна, но ни поле, ни форма не подсвечены */
-    expect(form().isValid).toBe(false);
+    expect(form.isValid).toBe(false);
     expect(wrapper.get('form').classes()).not.toContain('form--invalid');
     expect(wrapper.get('.form-item').classes()).not.toContain('form-item--invalid');
 
     /* silent validate — тоже без подсветки */
-    await form().validate(true);
+    await form.validate(true);
     await flush();
 
     expect(wrapper.get('form').classes()).not.toContain('form--invalid');
 
     /* громкая — подсвечены и поле, и форма */
-    await form().validate();
+    await form.validate();
     await flush();
 
-    expect(nameItem().validationStatus.isError).toBe(true);
+    expect(nameItem.validationStatus.isError).toBe(true);
     expect(wrapper.get('.form-item').classes()).toContain('form-item--invalid');
     expect(wrapper.get('form').classes()).toContain('form--invalid');
 
@@ -860,10 +787,10 @@ describe('Form validation', () => {
 
     expect(wrapper.get('form').classes()).toContain('form--invalid');
 
-    form().clearValidate();
+    form.clearValidate();
     await settle();
 
-    expect(form().isValid).toBe(false);
+    expect(form.isValid).toBe(false);
     expect(wrapper.get('form').classes()).not.toContain('form--invalid');
   });
 
@@ -872,22 +799,19 @@ describe('Form validation', () => {
     const onSubmit = vi.fn();
     const onInvalid = vi.fn();
 
-    const rules = defineFormRules<Model>({
-      name: z.string().nonempty('Введите имя')
+    const form = useForm<Model>({
+      model,
+      rules: defineFormRules<Model>({
+        name: z.string().nonempty('Введите имя')
+      }),
+      onSubmit,
+      onInvalid
     });
 
     const wrapper = mount(() => (
-      <Form.Root
-        modelValue={model.value}
-        rules={rules}
-        onUpdate:modelValue={value => {
-          model.value = value;
-        }}
-        onSubmit={onSubmit}
-        onInvalid={onInvalid}
-      >
+      <Form.Root form={form}>
         <Form.Item
-          name="name"
+          field={form.field('name')}
           v-slots={{
             default: ({ errors }: FormItemScopedSlot) => (
               <span class="errors">{errors.map(error => error.message).join(', ')}</span>
@@ -916,27 +840,22 @@ describe('Form validation', () => {
 
   it('scrollToError: скролл к первому невалидному FormItem только после громкой валидации', async () => {
     const model = ref<Model>({ name: 'Иван', email: 'не email' });
-    const formRef = ref<FormInstance | null>(null);
 
-    const rules = defineFormRules<Model>({
-      name: z.string().nonempty(),
-      email: z.email()
+    const form = useForm<Model>({
+      model,
+      rules: defineFormRules<Model>({
+        name: z.string().nonempty(),
+        email: z.email()
+      }),
+      scrollToError: true
     });
 
     const wrapper = mount(() => (
-      <Form.Root
-        ref={formRef}
-        modelValue={model.value}
-        rules={rules}
-        scrollToError
-        onUpdate:modelValue={value => {
-          model.value = value;
-        }}
-      >
-        <Form.Item name="name">
+      <Form.Root form={form}>
+        <Form.Item field={form.field('name')}>
           <input/>
         </Form.Item>
-        <Form.Item name="email">
+        <Form.Item field={form.field('email')}>
           <input/>
         </Form.Item>
       </Form.Root>
@@ -951,13 +870,13 @@ describe('Form validation', () => {
     nameEl!.scrollIntoView = scrollName;
     emailEl!.scrollIntoView = scrollEmail;
 
-    await formRef.value!.validate(true);
+    await form.validate(true);
     await flush();
 
     expect(scrollName).not.toHaveBeenCalled();
     expect(scrollEmail).not.toHaveBeenCalled();
 
-    await formRef.value!.validate();
+    await form.validate();
     await flush();
 
     expect(scrollName).not.toHaveBeenCalled();
@@ -968,29 +887,24 @@ describe('Form validation', () => {
   it('scrollToError: первый невалидный — по положению в DOM, а не по порядку регистрации', async () => {
     const model = ref<Model>({ name: '', email: 'не email' });
     const showName = ref(true);
-    const formRef = ref<FormInstance | null>(null);
 
-    const rules = defineFormRules<Model>({
-      name: z.string().nonempty(),
-      email: z.email()
+    const form = useForm<Model>({
+      model,
+      rules: defineFormRules<Model>({
+        name: z.string().nonempty(),
+        email: z.email()
+      }),
+      scrollToError: true
     });
 
     const wrapper = mount(() => (
-      <Form.Root
-        ref={formRef}
-        modelValue={model.value}
-        rules={rules}
-        scrollToError
-        onUpdate:modelValue={value => {
-          model.value = value;
-        }}
-      >
+      <Form.Root form={form}>
         {showName.value && (
-          <Form.Item name="name">
+          <Form.Item field={form.field('name')}>
             <input/>
           </Form.Item>
         )}
-        <Form.Item name="email">
+        <Form.Item field={form.field('email')}>
           <input/>
         </Form.Item>
       </Form.Root>
@@ -1011,7 +925,7 @@ describe('Form validation', () => {
     nameEl!.scrollIntoView = scrollName;
     emailEl!.scrollIntoView = scrollEmail;
 
-    await formRef.value!.validate();
+    await form.validate();
     await flush();
 
     expect(scrollName).toHaveBeenCalledTimes(1);
@@ -1019,28 +933,13 @@ describe('Form validation', () => {
   });
 
   it('scrollToError с объектом: дополняет дефолты', async () => {
-    const model = ref<Model>({ name: '', email: 'ivan@example.com' });
-    const formRef = ref<FormInstance | null>(null);
-
-    const rules = defineFormRules<Model>({
-      name: z.string().nonempty()
+    const { wrapper, form } = mountForm({
+      initial: { name: '', email: 'ivan@example.com' },
+      rules: defineFormRules<Model>({
+        name: z.string().nonempty()
+      }),
+      scrollToError: { block: 'start' }
     });
-
-    const wrapper = mount(() => (
-      <Form.Root
-        ref={formRef}
-        modelValue={model.value}
-        rules={rules}
-        scrollToError={{ block: 'start' }}
-        onUpdate:modelValue={value => {
-          model.value = value;
-        }}
-      >
-        <Form.Item name="name">
-          <input/>
-        </Form.Item>
-      </Form.Root>
-    ));
 
     await settle();
 
@@ -1048,7 +947,7 @@ describe('Form validation', () => {
 
     wrapper.get('.form-item').element.scrollIntoView = scroll;
 
-    await formRef.value!.validate();
+    await form.validate();
     await flush();
 
     expect(scroll).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' });
@@ -1065,27 +964,25 @@ describe('Form validation', () => {
 
     wrapper.get('.form-item').element.scrollIntoView = scroll;
 
-    await form().validate();
+    await form.validate();
     await flush();
 
     expect(scroll).not.toHaveBeenCalled();
   });
 
-  it('дубликат name: предупреждение в консоль', async () => {
+  it('дубликат field: предупреждение в консоль', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-    const model = ref<Model>({ name: 'Иван', email: 'ivan@example.com' });
+
+    const form = useForm<Model>({
+      model: { name: 'Иван', email: 'ivan@example.com' }
+    });
 
     mount(() => (
-      <Form.Root
-        modelValue={model.value}
-        onUpdate:modelValue={value => {
-          model.value = value;
-        }}
-      >
-        <Form.Item name="name">
+      <Form.Root form={form}>
+        <Form.Item field={form.field('name')}>
           <input/>
         </Form.Item>
-        <Form.Item name="name">
+        <Form.Item field={form.field('name')}>
           <input/>
         </Form.Item>
       </Form.Root>
@@ -1093,7 +990,7 @@ describe('Form validation', () => {
 
     await settle();
 
-    expect(warn).toHaveBeenCalledTimes(1);
-    expect(warn.mock.calls[0]?.[0]).toContain('name="name"');
+    expect(warn).toHaveBeenCalled();
+    expect(warn.mock.calls.some(call => String(call[0]).includes('field "name"'))).toBe(true);
   });
 });

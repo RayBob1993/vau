@@ -1,45 +1,16 @@
 <script lang="ts" setup>
   import type { IVFormItemProps } from './types';
-  import {
-    type FormItemExpose,
-    type FormItemInstance,
-    type FormItemSlots,
-    type FormItemEmits,
-    Form
-  } from '@vau/core';
-  import { computed, useTemplateRef } from 'vue';
+  import { type FormItemSlots, type FormItemEmits, Form } from '@vau/core';
 
   const { title, ...props } = defineProps<IVFormItemProps>();
 
   const emit = defineEmits<FormItemEmits>();
 
   const slots = defineSlots<FormItemSlots>();
-
-  const itemRef = useTemplateRef<FormItemInstance>('itemRef');
-
-  defineExpose<FormItemExpose>({
-    el: computed(() => itemRef.value?.el ?? null),
-    isValidatable: computed(() => itemRef.value?.isValidatable ?? false),
-    isFieldValid: computed(() => itemRef.value?.isFieldValid ?? false),
-    isRequired: computed(() => itemRef.value?.isRequired ?? false),
-    isValid: computed(() => itemRef.value?.isValid ?? true),
-    isDirty: computed(() => itemRef.value?.isDirty ?? false),
-    isPristine: computed(() => itemRef.value?.isPristine ?? true),
-    isChanged: computed(() => itemRef.value?.isChanged ?? false),
-    validationStatus: computed(() => itemRef.value?.validationStatus ?? {
-      isError: false,
-      isValidating: false,
-      isSuccess: false
-    }),
-    validate: (silent?: boolean) => itemRef.value?.validate(silent) ?? Promise.resolve(false),
-    clearValidateErrors: () => itemRef.value?.clearValidateErrors(),
-    resetMeta: () => itemRef.value?.resetMeta()
-  });
 </script>
 
 <template>
   <Form.Item
-    ref="itemRef"
     v-bind="props"
     v-on="emit"
   >

@@ -9,14 +9,14 @@ export function useFormItems () {
       return;
     }
 
-    const name = newFormItem.props.name;
+    const name = newFormItem.name;
 
     if (!name) {
       return;
     }
 
     const duplicate = formItems.value.find(
-      item => item.id !== newFormItem.id && item.props.name === name
+      item => item.id !== newFormItem.id && item.name === name
     );
 
     if (!duplicate) {
@@ -24,8 +24,8 @@ export function useFormItems () {
     }
 
     console.warn(
-      `[vau Form] Дублируется FormItem name="${name}". ` +
-      'Имя поля должно быть уникальным среди смонтированных FormItem. ' +
+      `[vau Form] Дублируется FormItem field "${name}". ` +
+      'Поле должно быть уникальным среди смонтированных FormItem. ' +
       `(id: ${duplicate.id}, ${newFormItem.id})`
     );
   }
