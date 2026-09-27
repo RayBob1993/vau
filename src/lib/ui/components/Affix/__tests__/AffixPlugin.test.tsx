@@ -1,7 +1,7 @@
 import { AffixPlugin } from '../plugin';
 import VAffix from '../VAffix.vue';
-import { describe, expect, it } from 'vitest';
 import { createApp } from 'vue';
+import { describe, expect, it } from 'vitest';
 
 describe('AffixPlugin', () => {
   it('Корректно регистрирует плагин', () => {
@@ -9,10 +9,10 @@ describe('AffixPlugin', () => {
 
     app.use(AffixPlugin);
 
-    const drawerComponent = app.component('VAffix');
+    const affixComponent = app.component('VAffix');
 
-    expect(drawerComponent).toBeDefined();
-    expect(drawerComponent).toBe(VAffix);
+    expect(affixComponent).toBeDefined();
+    expect(affixComponent).toBe(VAffix);
   });
 
   it('Плагин имеет функцию install', () => {
