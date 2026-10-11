@@ -10,6 +10,8 @@
     border: 0;
     padding: var(--input-number-input-native-padding-x, 0) var(--input-number-input-padding-y, 0);
 
+    outline: none;
+
     font-size: var(--input-number-input-native-font-size);
     line-height: var(--input-number-input-native-line-height);
     font-weight: var(--input-number-input-native-font-weight);

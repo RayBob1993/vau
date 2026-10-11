@@ -30,6 +30,7 @@ export function useSelectRoot (options: UseSelectRootOptions) {
   });
 
   const [isOpen, setOpen] = useToggle();
+  const [isFocus, setFocus] = useToggle();
 
   const hasValue = computed<boolean>(() => {
     if (isSelectMultiple(modelValue.value, props.value.multiple)) {
@@ -111,6 +112,8 @@ export function useSelectRoot (options: UseSelectRootOptions) {
     hasValue,
     isOpen,
     isDisabled,
+    isFocus,
+    setFocus,
     open,
     close,
     toggle,

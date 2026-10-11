@@ -1,7 +1,9 @@
 .input-number {
   display: flex;
   flex-wrap: nowrap;
-  border: var(--input-number-size, 0) var(--input-number-type, solid) var(--input-number-color, transparent);
+  border: var(--input-number-border-size, 0) var(--input-number-border-type, solid) var(--input-number-border-color, transparent);
+
+  border-radius: var(--input-number-border-radius, 0);
 
   &--direction {
     &-vertical {

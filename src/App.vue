@@ -1,6 +1,7 @@
 <script setup lang="ts">
   import { Form, Select, Input, Checkbox, Radio, Button, Switch, InputNumber, InputPassword, defineFormRules, type FormSubmitEvent } from '@vau/core';
   import '@vau/styles';
+  import './lib/styles/base/index.scss';
   import { ref } from 'vue';
   import { z } from 'zod';
 
@@ -43,7 +44,7 @@
 
 <template>
   <Form.Root
-    v-slot="{ isValid }"
+    v-slot="{ isValid, reset, isDirty }"
     v-model="model"
     :rules="rules"
     @submit="handleSubmit"
@@ -301,9 +302,20 @@
 
     <Button.Root
       type="submit"
+      theme="secondary"
+      size="medium"
       :disabled="!isValid"
     >
       Отправить
+    </Button.Root>
+
+    <Button.Root
+      theme="danger"
+      size="medium"
+      :disabled="!isDirty"
+      @click="reset"
+    >
+      Сброс
     </Button.Root>
   </Form.Root>
 
@@ -311,6 +323,10 @@
 </template>
 
 <style>
+body {
+  padding: 50px 100px;
+}
+
 hr {
   margin: 20px 0;
 }

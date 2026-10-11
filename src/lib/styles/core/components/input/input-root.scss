@@ -8,4 +8,8 @@
   border-radius: var(--input-border-radius);
 
   transition: var(--transition-base);
+
+  &--focus {
+    outline: var(--focus-ring-size) var(--focus-ring-style) var(--focus-ring-color);
+  }
 }

@@ -1,0 +1,10 @@
+.select {
+  --select-border-size: var(--border-size);
+  --select-border-color: var(--border-color);
+  --select-border-type: var(--border-style);
+  --select-border-radius: var(--border-radius);
+
+  &--focus {
+    outline: var(--focus-ring-size) var(--focus-ring-style) var(--focus-ring-color);
+  }
+}

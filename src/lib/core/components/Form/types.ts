@@ -49,6 +49,7 @@ export interface FormValidityFlags {
 export type FormScopedSlot = FormValidityFlags & FormMetaFlags & {
   isValidating: boolean;
   canSubmit: boolean;
+  reset: VoidFunction;
 };
 
 export interface FormSlots {

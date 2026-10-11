@@ -1,5 +1,5 @@
 <script setup lang="ts" generic="MODEL extends FormModel">
-  import type { FormEmits, FormExpose, FormModel, FormProps, FormSlots } from './types';
+  import type { FormEmits, FormExpose, FormModel, FormProps, FormScopedSlot, FormSlots } from './types';
   import { useFormRoot } from './composables';
   import { FormRootContextKey } from './context';
   import { computed, provide } from 'vue';
@@ -49,13 +49,14 @@
     }
   });
 
-  const scopedSlot = computed(() => ({
+  const scopedSlot = computed<FormScopedSlot>(() => ({
     isValid: isValid.value,
     isDirty: isDirty.value,
     isPristine: isPristine.value,
     isChanged: isChanged.value,
     isValidating: isValidating.value,
-    canSubmit: canSubmit.value
+    canSubmit: canSubmit.value,
+    reset
   }));
 
   provide(FormRootContextKey, {

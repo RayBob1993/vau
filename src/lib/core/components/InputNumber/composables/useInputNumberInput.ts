@@ -31,8 +31,18 @@ export function useInputNumberInput (options: UseInputNumberInputOptions) {
     autocomplete: inputRootProps.value?.autocomplete,
   }));
 
+  function handleFocusin () {
+    options.inputNumberRootContext?.setFocus(true);
+  }
+
+  function handleFocusout () {
+    options.inputNumberRootContext?.setFocus(false);
+  }
+
   return {
     props,
-    modelValue
+    modelValue,
+    handleFocusin,
+    handleFocusout
   };
 }

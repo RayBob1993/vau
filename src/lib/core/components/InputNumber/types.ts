@@ -32,4 +32,5 @@ export interface InputNumberRootContext {
   handleDecrement: VoidFunction;
   handleIncrement: VoidFunction;
   setModelValue: (value: InputNumberModelValue) => void;
+  setFocus: (payload: boolean) => void;
 }

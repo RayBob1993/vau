@@ -3,6 +3,7 @@ import type { FormRootContext, FormItemContext } from '../../Form';
 import type { Maybe, MaybeNull } from '../../../types';
 import { INPUT_NUMBER_STEP } from '../constants';
 import { isNumber } from '../../../utils';
+import { useToggle } from '../../../composables';
 import { computed, type MaybeRefOrGetter, onMounted, onUnmounted, toValue } from 'vue';
 
 export interface UseInputNumberRootOptions {
@@ -16,6 +17,8 @@ export interface UseInputNumberRootOptions {
 }
 
 export function useInputNumberRoot (options: UseInputNumberRootOptions) {
+  const [isFocus, setFocus] = useToggle();
+
   const props = computed<InputNumberProps>(() => toValue(options.props));
 
   const modelValue = computed<InputNumberModelValue>(() => toValue(options.modelValue));
@@ -81,10 +84,12 @@ export function useInputNumberRoot (options: UseInputNumberRootOptions) {
   return {
     step,
     isDisabled,
+    isFocus,
     isDecrementDisabled,
     isIncrementDisabled,
     handleDecrement,
     handleIncrement,
-    setModelValue
+    setModelValue,
+    setFocus
   };
 }

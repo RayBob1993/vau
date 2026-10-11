@@ -2,7 +2,6 @@
 :host {
   --black: #000000;
   --white: #ffffff;
-  --border-color: color-mix(in oklab, var(--black), transparent 90%);
 
   --base-background-color: var(--white);
   --base-background-color-hover: color-mix(in oklab, var(--base-background-color), transparent 20%);
@@ -17,6 +16,7 @@
   --primary-border-color: color-mix(in oklab, var(--primary-background-color), var(--black) 10%);
   --primary-border-color-hover: color-mix(in oklab, var(--primary-background-color), var(--black) 5%);
   --primary-color: #f9fafb;
+  --primary-color-focus: color-mix(in oklab, var(--primary-background-color), transparent calc(0.5 * 100%));
   --primary-color-hover: #f9fafb;
   --primary-color-plain: #066fd1;
 

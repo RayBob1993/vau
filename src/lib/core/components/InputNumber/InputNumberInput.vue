@@ -5,7 +5,7 @@
 
   const InputNumberRootContext = useInputNumberRootContext();
 
-  const { props, modelValue } = useInputNumberInput({
+  const { props, modelValue, handleFocusin, handleFocusout } = useInputNumberInput({
     inputNumberRootContext: InputNumberRootContext
   });
 
@@ -29,6 +29,8 @@
       class="input-number-input__native"
       v-bind="props"
       @wheel="handleWheel"
+      @focusin="handleFocusin"
+      @focusout="handleFocusout"
     >
   </div>
 </template>

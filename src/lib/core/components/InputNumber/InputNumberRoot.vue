@@ -21,11 +21,13 @@
   const {
     step,
     isDisabled,
+    isFocus,
     isDecrementDisabled,
     isIncrementDisabled,
     handleDecrement,
     handleIncrement,
-    setModelValue
+    setModelValue,
+    setFocus
   } = useInputNumberRoot({
     formRootContext,
     formItemContext,
@@ -51,7 +53,8 @@
     isIncrementDisabled: () => isIncrementDisabled.value,
     handleDecrement,
     handleIncrement,
-    setModelValue
+    setModelValue,
+    setFocus
   });
 </script>
 
@@ -61,7 +64,8 @@
     :class="{
       [`input-number--direction-${direction}`]: direction,
       'input-number--invalid': isError,
-      'input-number--valid': isSuccess
+      'input-number--valid': isSuccess,
+      'input-number--focus': isFocus
     }"
   >
     <slot/>

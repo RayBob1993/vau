@@ -21,6 +21,8 @@
     hasValue,
     isOpen,
     isDisabled,
+    isFocus,
+    setFocus,
     open,
     close,
     toggle,
@@ -48,6 +50,7 @@
     hasValue: () => hasValue.value,
     isOpen: () => isOpen.value,
     isDisabled: () => isDisabled.value,
+    setFocus,
     open,
     close,
     toggle,
@@ -64,6 +67,7 @@
     :class="{
       'select--disabled': isDisabled,
       'select--open': isOpen,
+      'select--focus': isFocus,
       'select--filled': hasValue,
       'select--invalid': isError,
       'select--valid': isSuccess

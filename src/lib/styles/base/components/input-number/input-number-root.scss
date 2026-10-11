@@ -1,0 +1,10 @@
+.input-number {
+  --input-number-border-size: var(--border-size);
+  --input-number-border-color: var(--border-color);
+  --input-number-border-type: var(--border-style);
+  --input-number-border-radius: var(--border-radius);
+
+  &--focus {
+    outline: var(--focus-ring-size) var(--focus-ring-style) var(--focus-ring-color);
+  }
+}

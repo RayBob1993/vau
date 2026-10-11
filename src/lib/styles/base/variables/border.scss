@@ -1,0 +1,6 @@
+:root,
+:host {
+  --border-size: 1px;
+  --border-style: solid;
+  --border-color: color-mix(in oklab, var(--black), transparent 90%);
+}

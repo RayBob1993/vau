@@ -60,6 +60,7 @@ export interface SelectRootContext {
   props: MaybeRefOrGetter<SelectProps>;
   modelValue: MaybeRefOrGetter<SelectModelValue>;
   isDisabled: MaybeRefOrGetter<boolean>;
+  setFocus: (payload: boolean) => void;
   open: () => void;
   close: () => void;
   toggle: () => void;
