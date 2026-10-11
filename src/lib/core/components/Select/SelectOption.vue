@@ -18,6 +18,10 @@
 <template>
   <div
     class="select-option"
+    role="option"
+    :tabindex="isDisabled ? undefined : -1"
+    :aria-selected="isActive"
+    :aria-disabled="isDisabled"
     :class="{
       'select-option--active': isActive,
       'select-option--disabled': isDisabled

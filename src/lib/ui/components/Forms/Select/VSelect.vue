@@ -20,12 +20,15 @@
     v-bind="props"
     v-model="modelValue"
     @change="emit('change', $event)"
+    @open="emit('open')"
     @close="emit('close')"
     @clear="emit('clear')"
   >
-    <Select.Value>
-      <slot name="value"/>
-    </Select.Value>
+    <Select.Trigger>
+      <Select.Value>
+        <slot name="value"/>
+      </Select.Value>
+    </Select.Trigger>
 
     <Select.Dropdown>
       <Select.Scrollbar>

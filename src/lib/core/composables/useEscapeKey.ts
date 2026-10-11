@@ -38,7 +38,7 @@ export function useEscapeKey (options: UseEscapeKeyOptions) {
       return;
     }
 
-    const shouldPreventDefault = options.preventDefault === undefined ? true : toValue(options.preventDefault);
+    const shouldPreventDefault = isUndefined(options.preventDefault) ? true : toValue(options.preventDefault);
 
     if (shouldPreventDefault) {
       event.preventDefault();

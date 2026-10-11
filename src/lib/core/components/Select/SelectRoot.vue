@@ -3,8 +3,9 @@
   import { useSelectRoot } from './composables';
   import { SelectRootContextKey } from './context';
   import { vClickOutside } from '../../directives';
+  import { useEscapeKey } from '../../composables';
   import { useFormContext } from '../Form/context';
-  import { provide } from 'vue';
+  import { provide, useTemplateRef } from 'vue';
 
   const props = defineProps<SelectProps>();
   const emit = defineEmits<SelectEmits>();
@@ -12,6 +13,8 @@
   const modelValue = defineModel<SelectModelValue>({
     required: true
   });
+
+  const rootRef = useTemplateRef<HTMLElement>('rootRef');
 
   const { formRootContext, formItemContext, isSuccess, isError } = useFormContext();
 
@@ -26,6 +29,13 @@
     open,
     close,
     toggle,
+    focusRoot,
+    removeValue,
+    handlePointerDown,
+    consumeClickCloseSuppression,
+    handleFocusIn,
+    handleFocusOut,
+    handleKeydown,
     registerOption,
     unregisterOption,
     setModelValue
@@ -34,11 +44,40 @@
     formItemContext,
     modelValue: () => modelValue.value,
     props: () => props,
+    getRootElement: () => rootRef.value,
+    onFocusRoot: () => {
+      rootRef.value?.focus();
+    },
+    onBlurRoot: () => {
+      rootRef.value?.blur();
+    },
     onChangeModel: value => {
       modelValue.value = value;
     },
     onChange: value => {
       emit('change', value);
+    },
+    onOpen: () => {
+      emit('open');
+
+      if (rootRef.value) {
+        emit('opened', rootRef.value);
+      }
+    },
+    onClose: () => {
+      emit('close');
+
+      if (rootRef.value) {
+        emit('closed', rootRef.value);
+      }
+    }
+  });
+
+  useEscapeKey({
+    when: () => isOpen.value,
+    enabled: () => !isDisabled.value,
+    onEscape: () => {
+      close();
     }
   });
 
@@ -49,11 +88,15 @@
     props: () => props,
     hasValue: () => hasValue.value,
     isOpen: () => isOpen.value,
+    isFocus: () => isFocus.value,
     isDisabled: () => isDisabled.value,
     setFocus,
     open,
     close,
     toggle,
+    focusRoot,
+    consumeClickCloseSuppression,
+    removeValue,
     registerOption,
     unregisterOption,
     setModelValue
@@ -62,8 +105,13 @@
 
 <template>
   <div
+    ref="rootRef"
     v-click-outside="close"
     class="select"
+    role="combobox"
+    :tabindex="isDisabled ? undefined : 0"
+    :aria-expanded="isOpen"
+    :aria-disabled="isDisabled"
     :class="{
       'select--disabled': isDisabled,
       'select--open': isOpen,
@@ -72,7 +120,10 @@
       'select--invalid': isError,
       'select--valid': isSuccess
     }"
-    :aria-disabled="isDisabled"
+    @pointerdown="handlePointerDown"
+    @focusin="handleFocusIn"
+    @focusout="handleFocusOut"
+    @keydown="handleKeydown"
   >
     <slot/>
   </div>

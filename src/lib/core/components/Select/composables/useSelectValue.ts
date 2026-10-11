@@ -29,8 +29,33 @@ export function useSelectValue (options: UseSelectValueOptions) {
 
   const placeholder = computed<Maybe<string>>(() => selectRootProps.value?.placeholder);
 
-  function toggle () {
-    options.selectRootContext?.toggle();
+  /**
+   * Клик по Value: фокус на Root → open.
+   * Повторный клик при focus+open: close + blur.
+   * Произвольный контент в Trigger/Value допустим — открытие завязано на focus Root.
+   */
+  function handleClick () {
+    if (toValue(options.selectRootContext?.isDisabled)) {
+      return;
+    }
+
+    // mousedown уже мог сфокусировать Root и открыть список — не закрываем на этом же click.
+    if (options.selectRootContext?.consumeClickCloseSuppression()) {
+      options.selectRootContext.focusRoot();
+
+      return;
+    }
+
+    const isFocus = Boolean(toValue(options.selectRootContext?.isFocus));
+    const isOpen = Boolean(toValue(options.selectRootContext?.isOpen));
+
+    if (isFocus && isOpen) {
+      options.selectRootContext?.close();
+
+      return;
+    }
+
+    options.selectRootContext?.focusRoot();
   }
 
   return {
@@ -39,6 +64,6 @@ export function useSelectValue (options: UseSelectValueOptions) {
     hasValue,
     isMultiple,
     placeholder,
-    toggle
+    handleClick
   };
 }

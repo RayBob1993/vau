@@ -56,6 +56,7 @@ export interface SelectRootContext {
   activeOption: MaybeRefOrGetter<Maybe<OptionInstance>>;
   activeOptions: MaybeRefOrGetter<Array<OptionInstance>>;
   isOpen: MaybeRefOrGetter<boolean>;
+  isFocus: MaybeRefOrGetter<boolean>;
   hasValue: MaybeRefOrGetter<boolean>;
   props: MaybeRefOrGetter<SelectProps>;
   modelValue: MaybeRefOrGetter<SelectModelValue>;
@@ -64,6 +65,10 @@ export interface SelectRootContext {
   open: () => void;
   close: () => void;
   toggle: () => void;
+  focusRoot: () => void;
+  /** Подавить close на click Value после focusin от того же pointer-жеста. */
+  consumeClickCloseSuppression: () => boolean;
+  removeValue: (value: OptionValue) => void;
   setModelValue: (value: OptionValue) => void;
   registerOption: (option: OptionInstance) => void;
   unregisterOption: (id: string) => void;

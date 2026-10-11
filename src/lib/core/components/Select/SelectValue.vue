@@ -4,7 +4,14 @@
 
   const selectRootContext = useSelectRootContext();
 
-  const { activeOptionValue, activeOptions, hasValue, isMultiple, placeholder, toggle } = useSelectValue({
+  const {
+    activeOptionValue,
+    activeOptions,
+    hasValue,
+    isMultiple,
+    placeholder,
+    handleClick
+  } = useSelectValue({
     selectRootContext
   });
 </script>
@@ -12,7 +19,7 @@
 <template>
   <div
     class="select-value"
-    @click="toggle"
+    @click="handleClick"
   >
     <slot>
       <template v-if="hasValue">
