@@ -4,7 +4,7 @@
 
   const InputRootContext = useInputRootContext();
 
-  const { modelValue, listeners } = useInputBase({
+  const { modelValue, fieldBindings } = useInputBase({
     inputRootContext: InputRootContext
   });
 
@@ -15,6 +15,7 @@
 
 <template>
   <textarea
+    v-bind="fieldBindings"
     v-model="modelValue"
     :readonly="props.readonly"
     :disabled="props.disabled"
@@ -23,6 +24,5 @@
     :cols="props.cols"
     :placeholder="props.placeholder"
     class="input-field input-field--textarea"
-    v-on="listeners"
   />
 </template>

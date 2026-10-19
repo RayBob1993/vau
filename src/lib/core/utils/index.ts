@@ -18,3 +18,4 @@ export * from './defines';
 export * from './renderSlotFragments';
 export * from './getScrollbarWidth';
 export * from './isBeforeInDocument';
+export * from './isListenerAttr';

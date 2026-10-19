@@ -4,7 +4,7 @@
 
   const InputRootContext = useInputRootContext();
 
-  const { modelValue, listeners } = useInputBase({
+  const { modelValue, fieldBindings } = useInputBase({
     inputRootContext: InputRootContext
   });
 
@@ -15,6 +15,7 @@
 
 <template>
   <input
+    v-bind="fieldBindings"
     v-model="modelValue"
     :type="props.nativeType"
     :inputmode="props.inputMode"
@@ -23,6 +24,5 @@
     :autocomplete="props.autocomplete"
     :placeholder="props.placeholder"
     class="input-field input-field--input"
-    v-on="listeners"
   >
 </template>

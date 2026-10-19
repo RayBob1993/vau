@@ -1,10 +1,11 @@
 <script setup lang="ts">
-  import type { InputModelValue, InputProps, InputEmits, InputSlots, InputExpose } from './types';
+  import type { InputModelValue, InputProps, InputSlots, InputExpose } from './types';
   import { useInputRoot } from './composables';
   import { InputRootContextKey } from './context';
   import { InputModes, InputNativeTypes, InputTypes } from '../../constants';
+  import { useComponentAttrs } from '../../composables';
   import { useFormContext } from '../Form/context';
-  import { provide } from 'vue';
+  import { provide, useAttrs } from 'vue';
 
   const props = withDefaults(defineProps<InputProps>(), {
     type: InputTypes.INPUT,
@@ -12,13 +13,17 @@
     inputMode: InputModes.TEXT
   });
 
-  const emit = defineEmits<InputEmits>();
-
   defineSlots<InputSlots>();
 
   const modelValue = defineModel<InputModelValue>({
     required: true
   });
+
+  defineOptions({
+    inheritAttrs: false
+  });
+
+  const { attrs, listeners } = useComponentAttrs(useAttrs());
 
   const { formRootContext, formItemContext, isSuccess, isError } = useFormContext();
 
@@ -36,10 +41,10 @@
     isDisabled: () => isDisabled.value,
     props: () => props,
     modelValue: () => modelValue.value,
+    fieldListeners: () => listeners.value,
     setFocus,
     setModelValue,
-    clear,
-    emit
+    clear
   });
 
   defineExpose<InputExpose>({
@@ -49,6 +54,7 @@
 
 <template>
   <div
+    v-bind="attrs"
     class="input"
     :class="{
       'input--focus': isFocus,

@@ -1,5 +1,5 @@
 import type { SizeProp, ThemeProp, Maybe, ValueOf } from '../../types';
-import type { EmitFn, MaybeRefOrGetter, VNode } from 'vue';
+import type { MaybeRefOrGetter, VNode } from 'vue';
 import { InputModes, InputNativeTypes, InputTypes } from '../../constants';
 
 export type InputModelValue = Maybe<string>;
@@ -46,38 +46,15 @@ export interface InputSlots {
   after?: (props: InputScopedSlot) => Array<VNode>;
 }
 
-export interface InputEmits {
-  click: [event: PointerEvent];
-  dblclick: [event: MouseEvent];
-  mousedown: [event: MouseEvent];
-  mouseup: [event: MouseEvent];
-  mouseenter: [event: MouseEvent];
-  mouseleave: [event: MouseEvent];
-  mousemove: [event: MouseEvent];
-  mouseover: [event: MouseEvent];
-  mouseout: [event: MouseEvent];
-  contextmenu: [event: Event];
-  focusin: [event: Event];
-  focusout: [event: Event];
-  change: [event: Event];
-  blur: [event: Event];
-  focus: [event: Event];
-  keyup: [event: KeyboardEvent];
-  keydown: [event: KeyboardEvent];
-  keypress: [event: KeyboardEvent];
-  paste: [event: ClipboardEvent];
-  copy: [event: ClipboardEvent];
-  cut: [event: ClipboardEvent];
-}
-
 export interface InputRootContext {
   props: MaybeRefOrGetter<InputProps>;
   modelValue: MaybeRefOrGetter<InputModelValue>;
   isDisabled: MaybeRefOrGetter<boolean>;
+  /** Слушатели с Root (`onClick`, `onFocusin`, …) — для проброса на input/textarea. */
+  fieldListeners: MaybeRefOrGetter<Record<string, unknown>>;
   setFocus: (payload: boolean) => void;
   setModelValue: (value: InputModelValue) => void;
   clear: VoidFunction;
-  emit: EmitFn<InputEmits>;
 }
 
 export interface InputExpose {

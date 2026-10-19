@@ -9,3 +9,4 @@ export * from './useScrollTo';
 export * from './useEmitProxy';
 export * from './useEscapeKey';
 export * from './useBodyScrollbar';
+export * from './useComponentAttrs';
